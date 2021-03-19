@@ -1,6 +1,13 @@
 name: CatchTheBoat
 version: ${project.version}
-main: com.github.militaermilitz.catchtheboat.CatchTheBoat
+main: com.github.militaermilitz.CatchTheBoat
 api-version: 1.15
 authors: [ MilitaerMilitz ]
-description: This enables Battleship (aka. Catch the boat) in Minecraft.
+description: This Plugin enables Battleship (aka. Catch the boat) in Minecraft.
+
+commands:
+  battleship:
+    description: Create or remove a game.
+    usage: Right usage -> /battleship <create/remove>
+    permission: catchTheBoat.battleship
+    permission-message: You don't have the permission to do that.

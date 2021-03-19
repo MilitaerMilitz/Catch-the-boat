@@ -1,13 +1,14 @@
-package com.github.militaermilitz.catchtheboat;
+package com.github.militaermilitz;
 
+import com.github.militaermilitz.command.BattleshipCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class CatchTheBoat extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        // Plugin startup logic
-
+        // Register Commands
+        getCommand("battleship").setExecutor(new BattleshipCommand());
     }
 
     @Override
