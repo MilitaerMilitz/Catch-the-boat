@@ -1,0 +1,6 @@
+name: CatchTheBoat
+version: ${project.version}
+main: com.github.militaermilitz.catchtheboat.CatchTheBoat
+api-version: 1.15
+authors: [ MilitaerMilitz ]
+description: This enables Battleship (aka. Catch the boat) in Minecraft.
