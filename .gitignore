@@ -8,6 +8,9 @@
 # IntelliJ
 out/
 
+#Sonstiges
+Testserver/
+
 # Compiled class file
 *.class
 
