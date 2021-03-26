@@ -11,7 +11,7 @@ public class NumberUtil {
 	 * @return Returns the ggt
 	 */
 	public static int ggTAdd(int a, int b){
-		//Überprüfung auf Null
+		//Check if 0
 		if (a == 0) return b;
 		else if (b == 0) return a;
 		
@@ -27,7 +27,7 @@ public class NumberUtil {
 	 * @return Returns the ggt
 	 */
 	public static int ggTMul(int a, int b){
-		//Überprüfung auf Null
+		//Check if 0
 		if (a == 0) return b;
 		if (b == 0) return a;
 		
@@ -57,6 +57,7 @@ public class NumberUtil {
 		System.out.println(a + " " + b);
 		return i;
 	}
+
 	/**
 	 * Shows while calculating the greatest common divisor with multiplicative Euclidean algorithm, the computational steps.
 	 * @return Returns the amount of steps needed for calculating
@@ -64,8 +65,8 @@ public class NumberUtil {
 	public static int ggTMulOut(int a, int b){		
 		int i;
 		for(i = 0; b > 0; i++){		
-			System.out.println(a +  " " + b);		
-			//Überprüfung auf Null
+			System.out.println(a +  " " + b);
+			//Check if 0
 			if (i == 0){
 				if (a == 0) return 1;
 			}
@@ -78,7 +79,7 @@ public class NumberUtil {
 	}
 
 	/**
-	 * Only calculates the greatest common divisor
+	 * Only calculates the greatest common divisor.
 	 * @return Returns gcd
 	 */
 	public static int ggT(int a, int b){
@@ -86,7 +87,7 @@ public class NumberUtil {
 	}
 
 	/**
-	 * Check if two doubles almost are equal
+	 * Check if two doubles almost are equal.
 	 */
 	public static boolean equals(double a, double b){
 		double eps = 0.000001;
@@ -104,6 +105,9 @@ public class NumberUtil {
 		return true;
 	}
 
+	/**
+	 * Checks if @param str is a number.
+	 */
 	public static boolean isNumber(String str){
 		return isLong(str) || isDouble(str) || isInteger(str) || isFloat(str) || isShort(str) || isByte(str);
 	}

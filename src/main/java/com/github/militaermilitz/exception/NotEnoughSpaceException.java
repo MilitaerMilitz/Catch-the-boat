@@ -2,6 +2,13 @@ package com.github.militaermilitz.exception;
 
 import org.bukkit.Location;
 
+/**
+ * @author Alexander Ley
+ * @version 1.0
+ *
+ * If there is not enough space -> Exception is thrown.
+ *
+ */
 public class NotEnoughSpaceException extends Exception{
 
     private final Location location;

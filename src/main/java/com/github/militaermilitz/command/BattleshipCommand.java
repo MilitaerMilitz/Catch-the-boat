@@ -22,13 +22,23 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * @author Alexander Ley
+ * @version 1.0
+ *
+ * This class handles the battleship command.
+ *
+ */
 public class BattleshipCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (sender instanceof Player){
             Player player = (Player) sender;
+
+            //Creating Task
             if (args.length == 2 && args[0].equals("create")){
+
                 //Initialise BattleshipGame
                 final BattleshipGame game;
                 try {
@@ -39,10 +49,13 @@ public class BattleshipCommand implements CommandExecutor, TabCompleter {
                         sender.sendMessage(ChatColor.RED + "The command syntax is wrong.");
                         return false;
                     }
-                    throw new NotEnoughSpaceException(player.getLocation());
                 }
+
+                //Highlight if NotEnoughSpaceException
                 catch (NotEnoughSpaceException e) {
                     final String mode = args[1];
+
+                    //Message
                     sender.sendMessage(ChatColor.RED + "There is not enough Space to create a game.");
                     sender.sendMessage(ChatColor.RED + "To create a " + mode + " game area. You need at least an empty field of "+
                                                ((mode.equals("small")) ? BattleshipGameBuilder.DIMENSIONS_SMALL : BattleshipGameBuilder.DIMENSIONS_BIG) + " Blocks (Width/Height/Length).");
@@ -52,10 +65,11 @@ public class BattleshipCommand implements CommandExecutor, TabCompleter {
                     Location location = player.getLocation();
                     final World world = player.getLocation().getWorld();
                     assert world != null;
-                    final Biome biome = world.getBiome(location.getBlockX(), location.getBlockY(), location.getBlockZ());
 
+                    //Special Ocean Biome treatment
+                    final Biome biome = world.getBiome(location.getBlockX(), location.getBlockY(), location.getBlockZ());
                     final boolean isOcean = Arrays.stream(Biome.values())
-                            .filter(LambdaBiome -> LambdaBiome.getKey().getKey().contains("ocean"))
+                            .filter(lambdaBiome -> lambdaBiome.getKey().getKey().contains("ocean"))
                             .collect(Collectors.toList())
                     .contains(biome);
 
@@ -63,13 +77,11 @@ public class BattleshipCommand implements CommandExecutor, TabCompleter {
                         location = location.subtract(new Vector(0, 3, 0));
                     }
 
+                    //Highlight
                     BattleshipGameBuilder.highlight(mode.equals("small"), location, Direction.getFromLocation(player.getLocation()));
                     return true;
                 }
-
-                //Build Stage
-
-                //return true;
+                return true;
             }
             else return false;
         }
@@ -84,7 +96,6 @@ public class BattleshipCommand implements CommandExecutor, TabCompleter {
         List<String> list = new ArrayList<>();
         if (args.length == 1){
             list.add("create");
-            list.add("remove");
         }
         if (args.length == 2 && args[0].equals("create")){
             list.add("small");
