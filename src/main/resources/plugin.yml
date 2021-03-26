@@ -8,6 +8,6 @@ description: This Plugin enables Battleship (aka. Catch the boat) in Minecraft.
 commands:
   battleship:
     description: Create or remove a game.
-    usage: Right usage -> /battleship <create/remove>
+    usage: Right usage -> /battleship <create/remove> <if create -> big/small>
     permission: catchTheBoat.battleship
     permission-message: You don't have the permission to do that.
