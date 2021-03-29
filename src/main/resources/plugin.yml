@@ -4,6 +4,8 @@ main: com.github.militaermilitz.CatchTheBoat
 api-version: 1.15
 authors: [ MilitaerMilitz ]
 description: This Plugin enables Battleship (aka. Catch the boat) in Minecraft.
+depend:
+  - StructureBlockLib
 
 commands:
   battleship:

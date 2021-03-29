@@ -76,5 +76,17 @@
             <artifactId>annotations</artifactId>
             <version>20.1.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.github.shynixn.structureblocklib</groupId>
+            <artifactId>structureblocklib-bukkit-api</artifactId>
+            <version>2.1.0</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.shynixn.structureblocklib</groupId>
+            <artifactId>structureblocklib-bukkit-core</artifactId>
+            <version>2.1.0</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 </project>

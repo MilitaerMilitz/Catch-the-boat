@@ -1,5 +1,6 @@
 package com.github.militaermilitz.mcUtil;
 
+import com.github.shynixn.structureblocklib.api.enumeration.StructureRotation;
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
 
@@ -8,7 +9,7 @@ import java.util.function.Predicate;
 
 /**
  * @author Alexander Ley
- * @version 1.0
+ * @version 1.1
  *
  * This enum handles different Directions and offers Methods to do ^ ^ ^ things (Relative to direction).
  *
@@ -28,8 +29,18 @@ public enum Direction {
         this.relVecZ = relVecZ;
     }
 
+    /**
+     * Parse direction from Location.
+     */
     public static Direction getFromLocation(Location location){
-        double direction = (location.getYaw() % 360);
+        return getFromYaw(location.getYaw());
+    }
+
+    /**
+     * Parse direction from Yaw.
+     */
+    public static Direction getFromYaw(float yaw){
+        double direction = (yaw % 360);
         if (direction < 0) direction += 360;
 
         System.out.println(direction);
@@ -40,14 +51,23 @@ public enum Direction {
         else return EAST;
     }
 
+    /**
+     * @return Returns relative x Vector.
+     */
     public Vector getRelVecX() {
         return new Vector(relVecX.getBlockX(), relVecX.getBlockY(), relVecX.getBlockZ());
     }
 
+    /**
+     * @return Returns relative y Vector.
+     */
     public Vector getRelVecY() {
         return new Vector(relVecY.getBlockX(), relVecY.getBlockY(), relVecY.getBlockZ());
     }
 
+    /**
+     * @return Returns relative z Vector.
+     */
     public Vector getRelVecZ() {
         return new Vector(relVecZ.getBlockX(), relVecZ.getBlockY(), relVecZ.getBlockZ());
     }
@@ -92,7 +112,7 @@ public enum Direction {
     }
 
     /**
-     * @return Returns a function which increase the relative posX.
+     * @return Returns a function which can increase in relative posX.
      * (^operand ^ ^)
      */
     public Function<Double, Double> increaseInRelX(double operand){
@@ -106,7 +126,7 @@ public enum Direction {
     }
 
     /**
-     * @return Returns a function which increase the relative posY.
+     * @return Returns a function which can increase in relative posY.
      * (^ ^operand ^)
      */
     public Function<Double, Double> increaseInRelY(double operand){
@@ -114,7 +134,7 @@ public enum Direction {
     }
 
     /**
-     * @return Returns a function which increase the relative posZ.
+     * @return Returns a function which can increase in relative posZ.
      * (^ ^ ^operand)
      */
     public Function<Double, Double> increaseInRelZ(double operand){
@@ -128,7 +148,7 @@ public enum Direction {
     }
 
     /**
-     * @return Returns a function which increment the relative posX.
+     * @return Returns a function which can increment in relative posX.
      * (^1 ^ ^)
      */
     public Function<Double, Double> incrementInRelX(){
@@ -136,7 +156,7 @@ public enum Direction {
     }
 
     /**
-     * @return Returns a function which increment the relative posY.
+     * @return Returns a function which can increment in relative posY.
      * (^ ^1 ^)
      */
     public Function<Double, Double> incrementInRelY(){
@@ -144,10 +164,47 @@ public enum Direction {
     }
 
     /**
-     * @return Returns a function which increment the relative posZ.
+     * @return Returns a function which can increment in relative posZ.
      * (^ ^ ^1)
      */
     public Function<Double, Double> incrementInRelZ(){
         return increaseInRelZ(1);
+    }
+
+    /**
+     * @return Returns a function which can decrement in relative posX.
+     * (^-1 ^ ^)
+     */
+    public Function<Double, Double> decrementInRelX(){
+        return increaseInRelX(-1);
+    }
+
+    /**
+     * @return Returns a function which can decrement in relative posY.
+     * (^ ^-1 ^)
+     */
+    public Function<Double, Double> decrementInRelY(){
+        return increaseInRelY(-1);
+    }
+
+    /**
+     * @return Returns a function which can decrement in relative posZ.
+     * (^ ^ ^-1)
+     */
+    public Function<Double, Double> decrementInRelZ(){
+        return increaseInRelZ(-1);
+    }
+
+    /**
+     * @return Converts Direction into Structureblock Rotation.
+     */
+    public StructureRotation getStructureBlockRotation(){
+        switch (this){
+            case SOUTH: return StructureRotation.NONE;
+            case WEST: return StructureRotation.ROTATION_90;
+            case NORTH: return StructureRotation.ROTATION_180;
+            default: //East
+                return StructureRotation.ROTATION_270;
+        }
     }
 }

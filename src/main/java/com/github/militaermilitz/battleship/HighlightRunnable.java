@@ -5,6 +5,7 @@ import com.github.militaermilitz.util.Tickable;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.World;
+import org.bukkit.util.Vector;
 
 /**
  * @author Alexander Ley
@@ -26,15 +27,26 @@ public class HighlightRunnable extends Tickable implements Runnable{
     /**
      *  Creates new highlighting task.
      */
-    public HighlightRunnable(boolean isSmall, Location location, Direction direction) {
+    public HighlightRunnable(Location location, Direction direction, Vector dimensions) {
         this.location = location;
         this.direction = direction;
 
         //Calculates goalLocation relative to direction.
         goalLocation = new Location(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
-        goalLocation.add(direction.getRelVecX().multiply(BattleshipGameBuilder.getDimensions(isSmall).getBlockX()));
-        goalLocation.add(direction.getRelVecY().multiply(BattleshipGameBuilder.getDimensions(isSmall).getBlockY()));
-        goalLocation.add(direction.getRelVecZ().multiply(BattleshipGameBuilder.getDimensions(isSmall).getBlockZ()));
+        goalLocation.add(direction.getRelVecX().multiply(dimensions.getBlockX()));
+        goalLocation.add(direction.getRelVecY().multiply(dimensions.getBlockY()));
+        goalLocation.add(direction.getRelVecZ().multiply(dimensions.getBlockZ()));
+
+        System.out.println(goalLocation);
+    }
+
+    /**
+     *  Creates new highlighting task.
+     */
+    public HighlightRunnable(boolean isSmall, Location location, Location goalLocation, Direction direction) {
+        this.location = location;
+        this.direction = direction;
+        this.goalLocation = goalLocation;
     }
 
     /**

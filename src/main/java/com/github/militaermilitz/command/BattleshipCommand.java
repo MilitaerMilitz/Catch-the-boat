@@ -4,23 +4,23 @@ import com.github.militaermilitz.battleship.BattleshipGame;
 import com.github.militaermilitz.battleship.BattleshipGameBuilder;
 import com.github.militaermilitz.exception.NotEnoughSpaceException;
 import com.github.militaermilitz.mcUtil.Direction;
+import com.github.militaermilitz.mcUtil.StageType;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.block.Biome;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * @author Alexander Ley
@@ -30,6 +30,12 @@ import java.util.stream.Collectors;
  *
  */
 public class BattleshipCommand implements CommandExecutor, TabCompleter {
+
+    private final Plugin plugin;
+
+    public BattleshipCommand(Plugin plugin) {
+        this.plugin = plugin;
+    }
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
@@ -41,44 +47,37 @@ public class BattleshipCommand implements CommandExecutor, TabCompleter {
 
                 //Initialise BattleshipGame
                 final BattleshipGame game;
-                try {
-                    final String mode = args[1];
-                    game = (mode.equals("small")) ? new BattleshipGame(true, player.getLocation()) :
-                                                (mode.equals("big")) ? new BattleshipGame(false, player.getLocation()) : null;
-                    if (game == null){
-                        sender.sendMessage(ChatColor.RED + "The command syntax is wrong.");
-                        return false;
-                    }
+                final StageType stageType = StageType.getFromString(args[1]);
+
+                if (stageType == null){
+                    sender.sendMessage(ChatColor.RED + "The command syntax is wrong.");
+                    return false;
                 }
 
+                try {
+                    game = new BattleshipGame(stageType, player.getLocation(), player, plugin);
+                }
                 //Highlight if NotEnoughSpaceException
-                catch (NotEnoughSpaceException e) {
+                catch (NotEnoughSpaceException | URISyntaxException e) {
                     final String mode = args[1];
 
                     //Message
                     sender.sendMessage(ChatColor.RED + "There is not enough Space to create a game.");
                     sender.sendMessage(ChatColor.RED + "To create a " + mode + " game area. You need at least an empty field of "+
-                                               ((mode.equals("small")) ? BattleshipGameBuilder.DIMENSIONS_SMALL : BattleshipGameBuilder.DIMENSIONS_BIG) + " Blocks (Width/Height/Length).");
+                                           StageType.getFromString(mode) + " Blocks (Width/Height/Length).");
                     sender.sendMessage(ChatColor.RED + "We suggest an ocean area.");
 
                     //Highlight space
-                    Location location = player.getLocation();
+                    final Location location = player.getLocation();
+                    location.subtract(new Vector(0, 3, 0));
+
                     final World world = player.getLocation().getWorld();
                     assert world != null;
 
-                    //Special Ocean Biome treatment
-                    final Biome biome = world.getBiome(location.getBlockX(), location.getBlockY(), location.getBlockZ());
-                    final boolean isOcean = Arrays.stream(Biome.values())
-                            .filter(lambdaBiome -> lambdaBiome.getKey().getKey().contains("ocean"))
-                            .collect(Collectors.toList())
-                    .contains(biome);
-
-                    if (location.getBlockY() == 63 && isOcean){
-                        location = location.subtract(new Vector(0, 3, 0));
-                    }
-
-                    //Highlight
-                    BattleshipGameBuilder.highlight(mode.equals("small"), location, Direction.getFromLocation(player.getLocation()));
+                    BattleshipGameBuilder.highlight(location,
+                        Direction.getFromLocation(player.getLocation()),
+                        stageType.getDimensions()
+                    );
                     return true;
                 }
                 return true;
