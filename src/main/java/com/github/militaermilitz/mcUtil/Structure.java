@@ -1,27 +1,33 @@
 package com.github.militaermilitz.mcUtil;
 
+import com.github.militaermilitz.battleship.BattleshipGame;
+import com.github.militaermilitz.battleship.BattleshipMenu;
 import com.github.militaermilitz.util.Tuple;
 import com.github.shynixn.structureblocklib.api.bukkit.StructureBlockLibApi;
+import com.github.shynixn.structureblocklib.api.bukkit.entity.StructureLoader;
+import com.github.shynixn.structureblocklib.api.entity.ProgressToken;
 import com.sun.xml.internal.bind.v2.schemagen.xmlschema.LocalAttribute;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.Consumer;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import javax.swing.text.html.HTMLDocument;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
 
 /**
  * @author Alexander Ley
  * @version 1.0
- *
- * This Class takes all information needed for an Structure.
- *
+ * This Class takes all information needed for an Structure..
  */
 public class Structure {
 
@@ -49,21 +55,26 @@ public class Structure {
     /**
      * Loads Structure into world using StructureBlockLib.
      */
-    public void loadStructure(Plugin plugin, Location location, Direction direction){
+    public void loadStructure(Plugin plugin, Location location, Direction direction, @Nullable Consumer<Object> consumer){
+        final Location unchangedLoc = new Location(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
         for (int i = 0; i < structures.size(); i++) {
             final Path path = structures.get(i);
             final Vector offset = offsets.get(i);
 
-            location.add(direction.getRelVecX().multiply(offset.getBlockX()));
-            location.add(direction.getRelVecY().multiply(offset.getBlockY()));
-            location.add(direction.getRelVecZ().multiply(offset.getBlockZ()));
+            unchangedLoc.add(direction.getRelVecX().multiply(offset.getBlockX()));
+            unchangedLoc.add(direction.getRelVecY().multiply(offset.getBlockY()));
+            unchangedLoc.add(direction.getRelVecZ().multiply(offset.getBlockZ()));
 
             StructureBlockLibApi.INSTANCE
                     .loadStructure(plugin)
-                    .at(location)
+                    .at(unchangedLoc)
                     .rotation(direction.getStructureBlockRotation())
                     .loadFromPath(path)
-                    .onException(e -> plugin.getLogger().log(Level.SEVERE, "Failed to load structure.", e));
+                    .onException(e -> plugin.getLogger().log(Level.SEVERE, "Failed to load structure.", e))
+                    .onResult(unused -> {
+                        if (consumer != null) consumer.accept(null);
+                    }
+            );
         }
     }
 }

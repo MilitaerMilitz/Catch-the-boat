@@ -1,8 +1,11 @@
 package com.github.militaermilitz;
 
+import com.github.militaermilitz.battleship.BattleshipGame;
+import com.github.militaermilitz.battleship.BattleshipGameFile;
 import com.github.militaermilitz.command.BattleshipCommand;
+import com.github.militaermilitz.chestGui.ChestGuiEvents;
+import com.github.militaermilitz.mcUtil.ExLocation;
 import com.github.militaermilitz.util.FileUtil;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -12,34 +15,79 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.zip.*;
+import java.util.Objects;
+import java.util.logging.Logger;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /**
  * @author Alexander Ley
- * @version 1.1
- *
+ * @version 1.2
  * Plugin Entry Class. This class register needed Staff.
- *
  */
 public final class CatchTheBoat extends JavaPlugin {
+    public static Logger LOGGER;
 
     @Override
     public void onEnable() {
-        // Register Commands
+        LOGGER = this.getLogger();
+
+        //Try to load saved battleship Games from file via gson.
+        try {
+            loadGameAssets();
+        }
+        catch (IOException ioException) {
+            ioException.printStackTrace();
+        }
+
+        // Register Commands and Event Listerner
         try {
             unzipStructures();
         }
         catch (IOException ioException) {
             ioException.printStackTrace();
         }
-        getCommand("battleship").setExecutor(new BattleshipCommand(this));
+        getServer().getPluginManager().registerEvents(new ChestGuiEvents(), this);
+        Objects.requireNonNull(getCommand("battleship")).setExecutor(new BattleshipCommand(this));
     }
 
     @Override
     public void onDisable() {
         // Plugin shutdown logic
+        saveGameAssets();
+    }
+
+    /**
+     * Saves the battleship Game Instances and stop all running games.
+     */
+    public void saveGameAssets(){
+        //Delete old game files.
+        final Path gamesDir = Paths.get("plugins/CatchTheBoat/Games");
+        if (Files.exists(gamesDir)) FileUtil.deleteDirectoryWithContent(gamesDir.toFile());
+
+        //Create new game files
+        BattleshipGame.GAMES.forEach((location, game) -> {
+            game.stop();
+            new BattleshipGameFile(game).saveToFile();
+        });
+    }
+
+    /**
+     * Load Game Instance from File..
+     */
+    public void loadGameAssets() throws IOException {
+        final Path gameDir = Paths.get("plugins/CatchTheBoat/Games");
+
+        if (Files.exists(gameDir)){
+            Files.list(gameDir).forEach(path -> {
+                final BattleshipGameFile gameFile = FileUtil.loadFromJson(path, BattleshipGameFile.class);
+
+                if (gameFile != null){
+                    final BattleshipGame game = gameFile.load();
+                    BattleshipGame.GAMES.put(ExLocation.getUniqueString(game.getLocation()), game);
+                }
+            });
+        }
     }
 
     /**
@@ -85,7 +133,10 @@ public final class CatchTheBoat extends JavaPlugin {
         zis.close();
     }
 
-    //Creates new File.
+    /**
+     * Creates new File at the destinationDir/zipEntry.
+     * @throws IOException If entry is outside of the target directory.
+     */
     private File newFile(File destinationDir, ZipEntry zipEntry) throws IOException {
         //Creates destination File
         File destFile = new File(destinationDir, zipEntry.getName());

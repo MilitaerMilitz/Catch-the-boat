@@ -6,6 +6,7 @@ authors: [ MilitaerMilitz ]
 description: This Plugin enables Battleship (aka. Catch the boat) in Minecraft.
 depend:
   - StructureBlockLib
+  - NBTAPI
 
 commands:
   battleship:

@@ -10,9 +10,7 @@ import java.util.function.Predicate;
 /**
  * @author Alexander Ley
  * @version 1.1
- *
  * This enum handles different Directions and offers Methods to do ^ ^ ^ things (Relative to direction).
- *
  */
 public enum Direction {
     SOUTH(new Vector(1, 0, 0), new Vector(0, 1, 0), new Vector(0, 0, 1)),
@@ -42,8 +40,6 @@ public enum Direction {
     public static Direction getFromYaw(float yaw){
         double direction = (yaw % 360);
         if (direction < 0) direction += 360;
-
-        System.out.println(direction);
 
         if ((direction < 45 && direction >= 0) || direction >= 315) return SOUTH;
         else if (direction >= 45 && direction < 135) return WEST;

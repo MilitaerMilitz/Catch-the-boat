@@ -12,7 +12,8 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.Scanner;
 import java.util.logging.Level;
@@ -183,6 +184,9 @@ public final class FileUtil {
         }
     }
 
+    /**
+     * Checks if a file is empty.
+     */
     public static boolean isEmpty(Path path){
         try {
             return Files.readAllLines(path).isEmpty();
@@ -193,14 +197,51 @@ public final class FileUtil {
     }
 
     /**
+     * Writes a String into File.
+     */
+    public static void writeString(Path path, String text) throws IOException {
+        Files.write(path, Arrays.asList(text.split("\n")));
+    }
+
+    /**
+     * Reads a String from File
+     */
+    public static String readString(Path path) throws IOException {
+        final StringBuilder builder = new StringBuilder();
+        final List<String> lines = Files.readAllLines(path);
+
+        for (int i = 0; i < lines.size(); i++){
+            final String line = lines.get(i);
+            if (i == lines.size() - 1) builder.append(line);
+            else builder.append(line).append("\n");
+        }
+
+        return builder.toString();
+    }
+
+    /**
+     * Deletes a directory with content
+     * @return Returns if it was sucessfull.
+     */
+    public static boolean deleteDirectoryWithContent(File directoryToBeDeleted) {
+        File[] allContents = directoryToBeDeleted.listFiles();
+        if (allContents != null) {
+            for (File file : allContents) {
+                deleteDirectoryWithContent(file);
+            }
+        }
+        return directoryToBeDeleted.delete();
+    }
+
+    /**
      * Saves an object to json file using Gson. File will be created if it not exists.
      * @param file File, where obj have to be saved.
      * @param obj Object which should be saved.
      * @return Returns true if saving was successful.
      */
-    /**public static boolean saveToJson(File file, Object obj){
+    public static boolean saveToJson(File file, Object obj){
         return saveToJson(file.toPath(), obj);
-    }*/
+    }
 
     /**
      * Saves an object to json file using Gson. File will be created if it not exists.
@@ -208,11 +249,11 @@ public final class FileUtil {
      * @param obj Object which should be saved.
      * @return Returns true if saving was successful.
      */
-    /*public static boolean saveToJson(Path path, Object obj){
+    public static boolean saveToJson(Path path, Object obj){
         final Gson gson = new Gson();
         try {
             createIfNotExists(path);
-            Files.writeString(path, gson.toJson(obj), StandardOpenOption.WRITE);
+            FileUtil.writeString(path, gson.toJson(obj));
             return true;
         }
         catch (IOException e) {
@@ -223,7 +264,7 @@ public final class FileUtil {
             }
             return false;
         }
-    }*/
+    }
 
     /**
      * Saves an object to json file using Gson. File will be created if it not exists.
@@ -231,11 +272,11 @@ public final class FileUtil {
      * @param obj Object which should be saved.
      * @return Returns true if saving was successful.
      */
-    /*public static boolean saveToJson(String path, Object obj){
+    public static boolean saveToJson(String path, Object obj){
         final Gson gson = new Gson();
         try {
             createIfNotExists(path);
-            Files.writeString(FileUtil.getPath(path), gson.toJson(obj), StandardOpenOption.WRITE);
+            FileUtil.writeString(FileUtil.getPath(path), gson.toJson(obj));
             return true;
         }
         catch (IOException e) {
@@ -246,7 +287,7 @@ public final class FileUtil {
             }
             return false;
         }
-    }*/
+    }
 
     /**
      * @param file Json file.
@@ -254,9 +295,9 @@ public final class FileUtil {
      * @param <T> Object that was saved to json.
      * @return Returns object from json file using Gson. Returns null if loading fails.
      */
-    /*public static <T> T loadFromJson(File file, Class<T> tClass){
+    public static <T> T loadFromJson(File file, Class<T> tClass){
         return loadFromJson(file.toPath(), tClass);
-    }*/
+    }
 
     /**
      * @param path Json file.
@@ -264,10 +305,10 @@ public final class FileUtil {
      * @param <T> Object that was saved to json.
      * @return Returns object from json file using Gson. Returns null if loading fails.
      */
-    /*public static <T> T loadFromJson(Path path, Class<T> tClass){
+    public static <T> T loadFromJson(Path path, Class<T> tClass){
         final Gson gson = new Gson();
         try {
-            return gson.fromJson(Files.readString(path), tClass);
+            return gson.fromJson(FileUtil.readString(path), tClass);
         }
         catch (IOException e) {
             if (logger != null) logger.log(Level.SEVERE, "Cannot load json from file: " + path + ". ");
@@ -277,7 +318,7 @@ public final class FileUtil {
             }
             return null;
         }
-    }*/
+    }
 
     /**
      * @param path e.g. "assets/textures/dice.json". Path (to a json file) after the src - folder.
@@ -285,10 +326,10 @@ public final class FileUtil {
      * @param <T> Object that was saved to json.
      * @return Returns object from json file using Gson. Returns null if loading fails.
      */
-    /*public static <T> T loadFromJson(String path, Class<T> tClass){
+    public static <T> T loadFromJson(String path, Class<T> tClass){
         final Gson gson = new Gson();
         try {
-            return gson.fromJson(Files.readString(FileUtil.getPath(path)), tClass);
+            return gson.fromJson(FileUtil.readString(FileUtil.getPath(path)), tClass);
         }
         catch (IOException e) {
             if (logger != null) logger.log(Level.SEVERE, "Cannot load json from file: " + path + ". ");
@@ -298,7 +339,7 @@ public final class FileUtil {
             }
             return null;
         }
-    }*/
+    }
 
     /**
      * For Objects using generics.
@@ -307,9 +348,9 @@ public final class FileUtil {
      * @param <T> Object that was saved to json.
      * @return Returns object from json file using Gson. Returns null if loading fails.
      */
-    /*public static <T> T loadFromJson(File file, TypeToken<T> token){
+    public static <T> T loadFromJson(File file, TypeToken<T> token){
         return loadFromJson(file.toPath(), token);
-    }*/
+    }
 
     /**
      * For Objects using generics.
@@ -318,10 +359,10 @@ public final class FileUtil {
      * @param <T> Object that was saved to json.
      * @return Returns object from json file using Gson. Returns null if loading fails.
      */
-    /*public static <T> T loadFromJson(Path path, TypeToken<T> token){
+    public static <T> T loadFromJson(Path path, TypeToken<T> token){
         final Gson gson = new Gson();
         try {
-            return gson.fromJson(Files.readString(path), token.getType());
+            return gson.fromJson(FileUtil.readString(path), token.getType());
         }
         catch (IOException e) {
             if (logger != null) logger.log(Level.SEVERE, "Cannot load json from file: " + path + ". ");
@@ -331,7 +372,7 @@ public final class FileUtil {
             }
             return null;
         }
-    }*/
+    }
 
     /**
      * For Objects using generics.
@@ -340,10 +381,10 @@ public final class FileUtil {
      * @param <T> Object that was saved to json.
      * @return Returns object from json file using Gson. Returns null if loading fails.
      */
-    /*public static <T> T loadFromJson(String path, TypeToken<T> token){
+    public static <T> T loadFromJson(String path, TypeToken<T> token){
         final Gson gson = new Gson();
         try {
-            return gson.fromJson(Files.readString(FileUtil.getPath(path)), token.getType());
+            return gson.fromJson(FileUtil.readString(FileUtil.getPath(path)), token.getType());
         }
         catch (IOException e) {
             if (logger != null) logger.log(Level.SEVERE, "Cannot load json from file: " + path + ". ");
@@ -353,5 +394,5 @@ public final class FileUtil {
             }
             return null;
         }
-    }*/
+    }
 }

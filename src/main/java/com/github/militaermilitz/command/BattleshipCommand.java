@@ -25,9 +25,7 @@ import java.util.List;
 /**
  * @author Alexander Ley
  * @version 1.0
- *
  * This class handles the battleship command.
- *
  */
 public class BattleshipCommand implements CommandExecutor, TabCompleter {
 
@@ -46,7 +44,6 @@ public class BattleshipCommand implements CommandExecutor, TabCompleter {
             if (args.length == 2 && args[0].equals("create")){
 
                 //Initialise BattleshipGame
-                final BattleshipGame game;
                 final StageType stageType = StageType.getFromString(args[1]);
 
                 if (stageType == null){
@@ -55,7 +52,7 @@ public class BattleshipCommand implements CommandExecutor, TabCompleter {
                 }
 
                 try {
-                    game = new BattleshipGame(stageType, player.getLocation(), player, plugin);
+                    new BattleshipGame(stageType, player.getLocation(), player, plugin);
                 }
                 //Highlight if NotEnoughSpaceException
                 catch (NotEnoughSpaceException | URISyntaxException e) {
