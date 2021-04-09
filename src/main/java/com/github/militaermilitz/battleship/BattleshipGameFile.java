@@ -30,7 +30,7 @@ public class BattleshipGameFile implements IFileConstructor<BattleshipGame> {
      */
     public BattleshipGameFile(BattleshipGame game){
         this.stageType = game.getStageType();
-        this.locationData = new LocationData(game.getLocation());
+        this.locationData = new LocationData(game.getLoc());
         this.pluginName = game.getPlugin().getName();
     }
 

@@ -36,7 +36,7 @@ public abstract class Tickable {
     /**
      * Stops the Timer
      */
-    public void stop(){
+    public void stop() {
         timer.cancel();
     }
 }

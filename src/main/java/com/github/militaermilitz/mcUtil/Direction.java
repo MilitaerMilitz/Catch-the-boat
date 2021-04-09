@@ -2,14 +2,18 @@ package com.github.militaermilitz.mcUtil;
 
 import com.github.shynixn.structureblocklib.api.enumeration.StructureRotation;
 import org.bukkit.Location;
+import org.bukkit.entity.Player;
+import org.bukkit.util.Consumer;
 import org.bukkit.util.Vector;
 
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
  * @author Alexander Ley
- * @version 1.1
+ * @version 1.3
  * This enum handles different Directions and offers Methods to do ^ ^ ^ things (Relative to direction).
  */
 public enum Direction {
@@ -28,14 +32,14 @@ public enum Direction {
     }
 
     /**
-     * Parse direction from Location.
+     * Parse Direction from Location.
      */
     public static Direction getFromLocation(Location location){
         return getFromYaw(location.getYaw());
     }
 
     /**
-     * Parse direction from Yaw.
+     * Parse Direction from Yaw.
      */
     public static Direction getFromYaw(float yaw){
         double direction = (yaw % 360);
@@ -45,6 +49,81 @@ public enum Direction {
         else if (direction >= 45 && direction < 135) return WEST;
         else if (direction >= 135 && direction < 225) return NORTH;
         else return EAST;
+    }
+
+    /**
+     * Parse Direction from Vector.
+     */
+    public static Direction getFromVector(Vector vector){
+        final Vector align = new Vector(0, 0, 1);
+        return getFromYaw((float) Math.toDegrees(align.angle(vector)));
+    }
+
+    /**
+     * Parse Direction from player Location.
+     */
+    public static Direction getFromPlayer(Player player){
+        return getFromLocation(player.getLocation());
+    }
+
+    /**
+     * Get the yaw in degrees the direction is pointing to.
+     */
+    public float getYaw(){
+        final Vector align = new Vector(0, 0, 1);
+        return (float) Math.toDegrees(align.angle(getRelVecZ()));
+    }
+
+    /**
+     * @return Returns opposite Direction.
+     */
+    public Direction getOpposite(){
+        switch (this){
+            case NORTH: return SOUTH;
+            case SOUTH: return NORTH;
+            case EAST: return WEST;
+            default: return EAST;
+        }
+    }
+
+    /**
+     * @return Returns Direction 90 degrees rotated.
+     */
+    public Direction rotate90(){
+        switch (this){
+            case NORTH: return WEST;
+            case WEST: return SOUTH;
+            case SOUTH: return EAST;
+            default: return NORTH;
+        }
+    }
+
+    /**
+     * @return Returns Direction 180 degrees rotated.
+     */
+    public Direction rotate180(){
+        return rotate90().rotate90();
+    }
+
+    /**
+     * @return Returns Direction 270 degrees rotated.
+     */
+    public Direction rotate270(){
+        return rotate180().rotate90();
+    }
+
+    /**
+     * @return Returns  if XZ coordinates are swapped -> Only by West and East
+     */
+    public boolean XZswaped(){
+        return this == EAST || this == WEST;
+    }
+
+    /**
+     * @return Returns if Direction is pointing negative.
+     */
+    public boolean isPointingNegative(){
+        return this == WEST || this == NORTH;
     }
 
     /**
@@ -192,6 +271,39 @@ public enum Direction {
     }
 
     /**
+     * @return Returns a function adding to a location a vector which is relative to direction.
+     */
+    public BiFunction<Location, Vector ,Location> addRelative(){
+        return (location, vector) -> {
+
+            if (XZswaped()) {
+                vector = new Vector(vector.getZ(), vector.getY(), vector.getX());
+            }
+            return new Location(location.getWorld(),
+                         increaseInRelX(vector.getX()).apply(location.getX()),
+                         increaseInRelY(vector.getY()).apply(location.getY()),
+                         increaseInRelZ(vector.getZ()).apply(location.getZ())
+            );
+        };
+    }
+
+    /**
+     * @return Returns a function subtracting to a location a vector which is relative to direction.
+     */
+    public BiFunction<Location, Vector ,Location> subtractRelative(){
+        return (location, vector) -> {
+            if (XZswaped()) {
+                vector = new Vector(vector.getZ(), vector.getY(), vector.getX());
+            }
+            return new Location(location.getWorld(),
+                         increaseInRelX(-vector.getX()).apply(location.getX()),
+                         increaseInRelY(-vector.getY()).apply(location.getY()),
+                         increaseInRelZ(-vector.getZ()).apply(location.getZ())
+            );
+        };
+    }
+
+    /**
      * @return Converts Direction into Structureblock Rotation.
      */
     public StructureRotation getStructureBlockRotation(){
@@ -201,6 +313,20 @@ public enum Direction {
             case NORTH: return StructureRotation.ROTATION_180;
             default: //East
                 return StructureRotation.ROTATION_270;
+        }
+    }
+
+    /**
+     * Loop from startLoc to endLoc.
+     * @param action The action which is done with every Position.
+     */
+    public void loopFromTo(Location startLoc, Location endLoc, Consumer<Location> action){
+        for (double x = startLoc.getBlockX(); getRelXTestPredicate(endLoc).test(x); x = incrementInRelX().apply(x)){
+            for (double y = startLoc.getBlockY(); getRelYTestPredicate(endLoc).test(y); y = incrementInRelY().apply(y)){
+                for (double z = startLoc.getBlockZ(); getRelZTestPredicate(endLoc).test(z); z = incrementInRelZ().apply(z)){
+                    action.accept(new Location(startLoc.getWorld(), x, y, z));
+                }
+            }
         }
     }
 }

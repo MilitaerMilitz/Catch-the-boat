@@ -22,8 +22,8 @@ import java.util.logging.Level;
 
 /**
  * @author Alexander Ley
- * @version 1.0
- * This class represents a ches Gui.
+ * @version 1.1
+ * This class represents a chest Gui.
  */
 public class ChestGui {
 
@@ -70,8 +70,8 @@ public class ChestGui {
 
         final ItemStack[] chestContent = new ItemStack[27];
         for (ChestGuiSlot slot : slots) {
-            final NBTItem nbtSlotItem = new NBTItem(slot.getStack(), true);
-            nbtSlotItem.setBoolean("ChestGuiSlot", true);
+            /*final NBTItem nbtSlotItem = new NBTItem(slot.getStack(), true);
+            nbtSlotItem.setBoolean("ChestGuiSlot", true);*/
 
             chestContent[slot.getPosition()] = slot.getStack();
         }
@@ -158,5 +158,12 @@ public class ChestGui {
 
         //Search game by Unique Location String.
         return BattleshipGame.GAMES.get(ExLocation.getUniqueString(gameLoc));
+    }
+
+    /**
+     * Clears chestGui inventory.
+     */
+    public void clearInventory(){
+        this.container.getInventory().clear();
     }
 }

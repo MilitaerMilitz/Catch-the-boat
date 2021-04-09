@@ -11,21 +11,21 @@ import java.util.Objects;
 /**
  * @author Alexander Ley
  * @version 1.0
- * This class Overrides the onAction Method of ChestGuiSlot to destroy the game.
+ * This class Overrides the onAction Method of ChestGuiSlot to exit the game.
  */
-public class DestroySlot extends ChestGuiSlot {
+public class GameExitSlot extends ChestGuiSlot {
 
     /**
      * @param stack Stack of the Slot
      * @param position Position in Container
      * @param name Name of the ItemStack
      */
-    public DestroySlot(ItemStack stack, int position, @Nullable String name) {
+    public GameExitSlot(ItemStack stack, int position, @Nullable String name) {
         super(stack, position, name);
     }
 
     @Override
     public void onAction(Player player, Location location) {
-        Objects.requireNonNull(parseChestGui(location)).parseGame().destroy();
+        Objects.requireNonNull(parseChestGui(location)).parseGame().stop();
     }
 }

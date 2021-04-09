@@ -2,6 +2,7 @@ package com.github.militaermilitz.battleship;
 
 import com.github.militaermilitz.exception.NotEnoughSpaceException;
 import com.github.militaermilitz.mcUtil.Direction;
+import com.github.militaermilitz.mcUtil.Structure;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -9,7 +10,6 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Container;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Consumer;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.Nullable;
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 
 /**
  * @author Alexander Ley
- * @version 1.2
+ * @version 1.3
  * This class handles all action to build and destroy the stage.
  */
 public class BattleshipGameBuilder {
@@ -61,22 +61,27 @@ public class BattleshipGameBuilder {
      * @throws NotEnoughSpaceException If there is not enough space for creating.
      */
     void buildGame(@Nullable Player player, @Nullable Consumer<Object> consumer) throws NotEnoughSpaceException {
-        final Location location = game.getLocation();
-        if (!haveEnoughSpace(player)) throw new NotEnoughSpaceException("Here ist not enough space to build the game.", location);
+        if (!haveEnoughSpace(player)) throw new NotEnoughSpaceException("Here ist not enough space to build the game.", game.getLoc());
 
-        final Direction direction = game.getDirection();
-        final Plugin plugin = game.getPlugin();
+        loadStructure(game.getStageType().getStructurePreset(), consumer);
+    }
 
-        game.getStageType().getStructure().loadStructure(plugin, location, direction, consumer);
+    /**
+     * Loads a structure from Preset.
+     * @param presets Structure Preset.
+     * @param consumer Task which have to be done directly after loading.
+     */
+    void loadStructure(Structure.Presets presets, @Nullable Consumer<Object> consumer){
+        presets.getStructure().loadStructure(game.getPlugin(), game.getLoc(), game.getDir(), consumer);
     }
 
     /**
      * Destroys the stage and replace all block with air.
      */
     void destroyGame(){
-        final Location loc = game.getLocation();
-        final Location goalLoc = game.getGoalLocation();
-        final Direction dir = game.getDirection();
+        final Location loc = game.getLoc();
+        final Location goalLoc = game.getGoalLoc();
+        final Direction dir = game.getDir();
         final World world = loc.getWorld();
         assert world != null;
 
@@ -104,9 +109,9 @@ public class BattleshipGameBuilder {
      * @return Returns if there is enough space for creating a new stage.
      */
     private boolean haveEnoughSpace(@Nullable Player player){
-        final Location loc = game.getLocation();
-        final Location goalLoc = game.getGoalLocation();
-        final Direction dir = game.getDirection();
+        final Location loc = game.getLoc();
+        final Location goalLoc = game.getGoalLoc();
+        final Direction dir = game.getDir();
         final World world = loc.getWorld();
         assert world != null;
 

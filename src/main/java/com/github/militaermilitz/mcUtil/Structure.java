@@ -18,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.text.html.HTMLDocument;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -26,7 +27,7 @@ import java.util.logging.Level;
 
 /**
  * @author Alexander Ley
- * @version 1.0
+ * @version 1.1
  * This Class takes all information needed for an Structure..
  */
 public class Structure {
@@ -75,6 +76,29 @@ public class Structure {
                         if (consumer != null) consumer.accept(null);
                     }
             );
+        }
+    }
+
+    public enum Presets{
+        STAGE_BIG(new Structure(
+                new Tuple<>(Paths.get("plugins/CatchTheBoat/structures/battleship_big_1.nbt"), new Vector(0, 0, 0)),
+                new Tuple<>(Paths.get("plugins/CatchTheBoat/structures/battleship_big_2.nbt"), new Vector(0, 0, 22)))
+        ),
+        STAGE_SMALL(new Structure(new Tuple<>(Paths.get("plugins/CatchTheBoat/structures/battleship_small.nbt"), new Vector(0, 0, 0)))),
+        STAGE_BIG_INGAME(new Structure(
+                new Tuple<>(Paths.get("plugins/CatchTheBoat/structures/battleship_big_1_ingame.nbt"), new Vector(0, 0, 0)),
+                new Tuple<>(Paths.get("plugins/CatchTheBoat/structures/battleship_big_2_ingame.nbt"), new Vector(0, 0, 22)))
+        ),
+        STAGE_SMALL_INGAME(new Structure(new Tuple<>(Paths.get("plugins/CatchTheBoat/structures/battleship_small_ingame.nbt"), new Vector(0, 0, 0))));
+
+        private final Structure structure;
+
+        Presets (Structure structure){
+            this.structure = structure;
+        }
+
+        public Structure getStructure() {
+            return structure;
         }
     }
 }

@@ -2,6 +2,7 @@ package com.github.militaermilitz;
 
 import com.github.militaermilitz.battleship.BattleshipGame;
 import com.github.militaermilitz.battleship.BattleshipGameFile;
+import com.github.militaermilitz.battleship.engine.BoatPlacingEvents;
 import com.github.militaermilitz.command.BattleshipCommand;
 import com.github.militaermilitz.chestGui.ChestGuiEvents;
 import com.github.militaermilitz.mcUtil.ExLocation;
@@ -22,7 +23,7 @@ import java.util.zip.ZipInputStream;
 
 /**
  * @author Alexander Ley
- * @version 1.2
+ * @version 1.3
  * Plugin Entry Class. This class register needed Staff.
  */
 public final class CatchTheBoat extends JavaPlugin {
@@ -48,6 +49,7 @@ public final class CatchTheBoat extends JavaPlugin {
             ioException.printStackTrace();
         }
         getServer().getPluginManager().registerEvents(new ChestGuiEvents(), this);
+        getServer().getPluginManager().registerEvents(new BoatPlacingEvents(), this);
         Objects.requireNonNull(getCommand("battleship")).setExecutor(new BattleshipCommand(this));
     }
 
@@ -67,7 +69,7 @@ public final class CatchTheBoat extends JavaPlugin {
 
         //Create new game files
         BattleshipGame.GAMES.forEach((location, game) -> {
-            game.stop();
+            game.exitGame();
             new BattleshipGameFile(game).saveToFile();
         });
     }
@@ -84,7 +86,8 @@ public final class CatchTheBoat extends JavaPlugin {
 
                 if (gameFile != null){
                     final BattleshipGame game = gameFile.load();
-                    BattleshipGame.GAMES.put(ExLocation.getUniqueString(game.getLocation()), game);
+                    BattleshipGame.GAMES.put(ExLocation.getUniqueString(game.getLoc()), game);
+                    game.stop();
                 }
             });
         }

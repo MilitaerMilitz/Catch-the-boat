@@ -3,10 +3,11 @@ package com.github.militaermilitz.util;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 
 /**
  * @author Alexander Ley
- * @version 1.2
+ * @version 1.3
  *
  * This Class simulates a 2-Tuple.
  * @param <K> First Type
@@ -15,6 +16,9 @@ import java.util.*;
 public class Tuple<K, V> implements Map<K, V> {
     private K key;
     private V value;
+
+    public Tuple(){
+    }
 
     /**
      * Creates a new Tuple.
@@ -160,7 +164,7 @@ public class Tuple<K, V> implements Map<K, V> {
      * @return Returns a single item set with key.
      */
     @Override
-    public Set<K> keySet() {
+    public @NotNull Set<K> keySet() {
        return Collections.singleton(key);
     }
 
@@ -168,7 +172,7 @@ public class Tuple<K, V> implements Map<K, V> {
      * @return Returns a single item list with value.
      */
     @Override
-    public Collection<V> values() {
+    public @NotNull Collection<V> values() {
         return Collections.singletonList(value);
     }
 
@@ -176,8 +180,19 @@ public class Tuple<K, V> implements Map<K, V> {
      * @return Returns a single item set with Entry<K, V>.
      */
     @Override
-    public Set<Entry<K, V>> entrySet() {
+    public @NotNull Set<Entry<K, V>> entrySet() {
         return Collections.singleton(new AbstractMap.SimpleEntry<>(key, value));
+    }
+
+    /**
+     * @return Returns tuple as string.
+     */
+    @Override
+    public String toString() {
+        return "Tuple{" +
+                "key=" + key +
+                ", value=" + value +
+                '}';
     }
 
     /**

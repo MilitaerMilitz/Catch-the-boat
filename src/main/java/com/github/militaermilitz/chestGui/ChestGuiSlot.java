@@ -9,15 +9,15 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Alexander Ley
- * @version 1.0
+ * @version 1.1
  * This class represents the basic class of a ChestGuiSlot
  */
-public class ChestGuiSlot {
+public abstract class ChestGuiSlot {
 
     //Slot Data
     private ItemStack stack;
     private int position;
-    private  String name;
+    private final String name;
 
      /**
      * @param stack Stack of the Slot
@@ -29,7 +29,7 @@ public class ChestGuiSlot {
         this.position = position;
         this.name = name;
 
-        //Apply name to container.
+        //Apply name to slot.
         if (name != null){
             final NBTItem nbtItem = new NBTItem(stack, true);
             nbtItem.addCompound("display");
@@ -57,9 +57,7 @@ public class ChestGuiSlot {
     /**
      * Method activated if slot is clicked.
      */
-    public void onAction(Player player, Location location){
-
-    }
+    public abstract void onAction(Player player, Location location);
 
     @Override
     public boolean equals(Object o) {
@@ -81,6 +79,11 @@ public class ChestGuiSlot {
         return result;
     }
 
+    /**
+     * Parse chestGui from Slot.
+     * @param location Needs Location.
+     * @return Return null if no ChestGui is found.
+     */
     protected @Nullable ChestGui parseChestGui(Location location){
         return ChestGui.CHEST_GUI.get(ExLocation.getUniqueString(location));
     }

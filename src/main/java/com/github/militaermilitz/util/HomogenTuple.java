@@ -1,15 +1,20 @@
 package com.github.militaermilitz.util;
 
 import java.util.Comparator;
+import java.util.function.Consumer;
 
 /**
  * @author Alexander Ley
- * @version 1.0
+ * @version 1.1
  *
  * This class simulates a 2-homogeneousTuple.
  * @param <T> type of first and second.
  */
 public class HomogenTuple<T> extends Tuple<T, T> {
+
+    public HomogenTuple(){
+
+    }
 
     /**
      * Creates a new homogeneous tuple.
@@ -34,5 +39,13 @@ public class HomogenTuple<T> extends Tuple<T, T> {
         T max = getKey();
         if (comparator.compare(max, getValue()) < 0) max = getValue();
         return max;
+    }
+
+    /**
+     * Perform @param action to key and value.
+     */
+    public void forEach(Consumer<? super T> action) {
+        action.accept(getKey());
+        action.accept(getValue());
     }
 }

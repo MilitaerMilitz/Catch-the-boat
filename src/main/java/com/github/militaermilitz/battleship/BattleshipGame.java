@@ -1,14 +1,21 @@
 package com.github.militaermilitz.battleship;
 
+import com.github.militaermilitz.battleship.engine.area.EnemyGameArea;
+import com.github.militaermilitz.battleship.engine.area.OwnGameArea;
+import com.github.militaermilitz.battleship.engine.player.BasicGamePlayer;
+import com.github.militaermilitz.battleship.engine.player.ComputerGamePlayer;
+import com.github.militaermilitz.battleship.engine.player.HumanGamePlayer;
+import com.github.militaermilitz.chestGui.GuiPresets;
 import com.github.militaermilitz.exception.NotEnoughSpaceException;
 import com.github.militaermilitz.mcUtil.Direction;
 import com.github.militaermilitz.mcUtil.ExLocation;
 import com.github.militaermilitz.mcUtil.StageType;
+import com.github.militaermilitz.mcUtil.Structure;
+import com.github.militaermilitz.util.HomogenTuple;
 import com.github.militaermilitz.util.Tickable;
-import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.entity.Bat;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
@@ -16,10 +23,13 @@ import org.jetbrains.annotations.Nullable;
 
 import java.net.URISyntaxException;
 import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author Alexander Ley
- * @version 1.3
+ * @version 1.5
  * This Class handles all action around the game and includes the game loop.
  */
 public class BattleshipGame extends Tickable {
@@ -31,13 +41,17 @@ public class BattleshipGame extends Tickable {
 
     //All information a battleship game needs
     private final StageType stageType;
-    private final ExLocation location;
-    private final ExLocation goalLocation;
-    private final Direction direction;
+    private final ExLocation loc;
+    private final ExLocation goalLoc;
+    private final Direction dir;
 
+    //All information to run.
     private final Plugin plugin;
     private final BattleshipMenu menu;
     private final BattleshipGameBuilder builder;
+    private HomogenTuple<BasicGamePlayer> players = null;
+
+    private boolean isRunning = false;
 
     /**
      * Construct a new game.
@@ -54,17 +68,17 @@ public class BattleshipGame extends Tickable {
         final World world = location.getWorld();
         if (world == null) throw new IllegalArgumentException("Location is not suitable: " + location);
 
-        this.location = new ExLocation(location);
-        if (buildStage) this.location.subtract(new Vector(0, 3, 0));
-        this.location.align();
+        this.loc = new ExLocation(location);
+        if (buildStage) this.loc.subtract(new Vector(0, 3, 0));
+        this.loc.align();
 
-        this.direction = Direction.getFromLocation(location);
+        this.dir = Direction.getFromLocation(location);
 
         //Calculate second corner. (Location is first corner)
-        goalLocation = new ExLocation(this.location);
-        goalLocation.add(direction.getRelVecX().multiply(stageType.getDimensions().getBlockX()));
-        goalLocation.add(direction.getRelVecY().multiply(stageType.getDimensions().getBlockY()));
-        goalLocation.add(direction.getRelVecZ().multiply(stageType.getDimensions().getBlockZ()));
+        goalLoc = new ExLocation(this.loc);
+        goalLoc.add(dir.getRelVecX().multiply(stageType.getDimensions().getBlockX()));
+        goalLoc.add(dir.getRelVecY().multiply(stageType.getDimensions().getBlockY()));
+        goalLoc.add(dir.getRelVecZ().multiply(stageType.getDimensions().getBlockZ()));
 
         this.menu = new BattleshipMenu(this, true);
 
@@ -75,9 +89,9 @@ public class BattleshipGame extends Tickable {
 
         this.builder = gameBuilder;
 
-        GAMES.put(ExLocation.getUniqueString(this.location), this);
+        GAMES.put(ExLocation.getUniqueString(this.loc), this);
 
-        System.out.println(this.goalLocation);
+        System.out.println(this.goalLoc);
     }
 
     /**
@@ -91,23 +105,23 @@ public class BattleshipGame extends Tickable {
     }
 
     //Getter
-    StageType getStageType() {
+    public StageType getStageType() {
         return stageType;
     }
 
-    public Location getLocation() {
-        return new ExLocation(this.location);
+    public Location getLoc() {
+        return new ExLocation(this.loc);
     }
 
-    Direction getDirection() {
-        return direction;
+    Direction getDir() {
+        return dir;
     }
 
-    Location getGoalLocation() {
-        return new ExLocation(this.goalLocation);
+    Location getGoalLoc() {
+        return new ExLocation(this.goalLoc);
     }
 
-    Plugin getPlugin() {
+    public Plugin getPlugin() {
         return plugin;
     }
 
@@ -115,17 +129,48 @@ public class BattleshipGame extends Tickable {
         return menu;
     }
 
+    public HomogenTuple<BasicGamePlayer> getPlayers() {
+        return players;
+    }
 
     /**
      * Starts the game.
-     *
      * @param delay  Start delay.
      * @param period Timer period.
      */
     @Override
     public void start(long delay, long period) {
-        //super.start(delay, period);
-        System.out.println("Start Game");
+        //Game cannot be started twice.
+        if (isRunning) {
+            destroy();
+            throw new IllegalStateException("Game is already running.");
+        }
+        isRunning = true;
+
+        super.start(delay, period);
+
+        //Initialize players
+        if (!calculatePlayers()) return;
+
+        //Give players the boat Inventory.
+        players.forEach(basicGamePlayer -> {
+            if (basicGamePlayer instanceof HumanGamePlayer){
+                final Player player = ((HumanGamePlayer) basicGamePlayer).getPlayer();
+                final HashMap<Integer, ItemStack> rest = player.getInventory().addItem(stageType.getBoatInventory());
+
+                //Drop if player Inventory is full.
+                if (!rest.isEmpty()){
+                    final World world = player.getLocation().getWorld();
+                    assert world != null;
+
+                    rest.forEach((integer, itemStack) -> world.dropItemNaturally(player.getLocation(), itemStack));
+                }
+            }
+        });
+
+        //Loads structure
+        builder.loadStructure((getStageType() == StageType.SMALL) ? Structure.Presets.STAGE_SMALL_INGAME : Structure.Presets.STAGE_BIG_INGAME, o ->
+                menu.changeGuis(GuiPresets.BOAT_CONFIRM_GUI, GuiPresets.BOAT_CONFIRM_GUI));
     }
 
     /**
@@ -133,7 +178,19 @@ public class BattleshipGame extends Tickable {
      */
     @Override
     public void tick() {
+        if (players != null) {
+            players.forEach(basicGamePlayer -> {
 
+                if (basicGamePlayer != null) {
+                    basicGamePlayer.renderAreas();
+
+                    if (basicGamePlayer instanceof HumanGamePlayer) {
+                        final HumanGamePlayer gamePlayer = (HumanGamePlayer) basicGamePlayer;
+                        gamePlayer.getOwnGameAr().markBlock(plugin, gamePlayer.getPlayer());
+                    }
+                }
+            });
+        }
     }
 
     /**
@@ -141,18 +198,136 @@ public class BattleshipGame extends Tickable {
      */
     @Override
     public void stop() {
-        //super.stop();
-        System.out.println("End Game");
+        //Do exit stuff.
+        exitGame();
+
+        //Refresh the structure
+        builder.loadStructure(getStageType().getStructurePreset(), o ->
+                menu.changeGuis(GuiPresets.START_GUI, GuiPresets.START_GUI));
     }
+
+    /**
+     * Tries to initialize the players.
+     * @return Returns if players can calculated.
+     */
+    private boolean calculatePlayers(){
+        players = new HomogenTuple<>();
+        final Vector dim = stageType.getDimensions();
+
+        //Calculate Middle Location
+        final Location midLocEnd = new ExLocation(loc.getWorld(), goalLoc.toVector().subtract(dir.getRelVecZ().multiply(stageType.getDimensions().getZ() / 2.0)));
+        midLocEnd.subtract(dir.getRelVecX());
+        midLocEnd.subtract(dir.getRelVecY());
+        final Location midLocStart = new ExLocation(loc.getWorld(), loc.toVector().add(dir.getRelVecZ().multiply(stageType.getDimensions().getZ() / 2.0)));
+
+        //Calculates all game areas.
+        final EnemyGameArea enFrontAr = new EnemyGameArea(
+                dir.subtractRelative().apply(getGoalLoc(), new Vector(2, 3, dim.getBlockZ() / 2 + 2)),
+                dim.getBlockX() - 2,
+                dim.getBlockY() - 6,
+                dir, true
+        );
+
+        final EnemyGameArea enBackAr = new EnemyGameArea(
+                dir.addRelative().apply(getLoc(), new Vector(1, dim.getBlockY() - 3, dim.getBlockZ() / 2 + 1)),
+                dim.getBlockX() - 2,
+                dim.getBlockY() - 6,
+                dir, true
+        );
+
+        final OwnGameArea ownFrontAr = new OwnGameArea(
+                dir.subtractRelative().apply(getGoalLoc(), new Vector(2, dim.getBlockY() - 2, dim.getBlockZ() / 2 + 4)),
+                dim.getBlockX() - 2,
+                dim.getBlockY() - 6,
+                dir, true
+        );
+
+        final OwnGameArea ownBackAr = new OwnGameArea(
+                dir.addRelative().apply(getLoc(), new Vector(1 , 2, dim.getBlockZ() / 2 + 3)),
+                dim.getBlockX() - 2,
+                dim.getBlockY() - 6,
+                dir, false
+        );
+
+        //Marks if player was found
+        boolean flagFront = false, flagBack = false;
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getGameMode() == GameMode.SPECTATOR) continue;
+
+            //Search for front player
+            if (!flagFront && ExLocation.intersects(loc, midLocEnd, player.getLocation(), dir)){
+                players.setKey(new HumanGamePlayer(this, player, player.getGameMode(),enFrontAr, ownFrontAr, true));
+                player.setGameMode(GameMode.ADVENTURE);
+                flagFront = true;
+            }
+            //Search for back player
+            else if (!flagBack && ExLocation.intersects(midLocStart, goalLoc, player.getLocation(), dir)){
+                players.setValue(new HumanGamePlayer(this, player, player.getGameMode(), enBackAr, ownBackAr, false));
+                player.setGameMode(GameMode.ADVENTURE);
+                flagBack = true;
+            }
+            if (flagFront && flagBack) break;
+        }
+
+        /*if (!flagFront || !flagBack) {
+            if (flagFront.get()) ((HumanGamePlayer)players.getKey()).getPlayer().sendMessage(ChatColor.RED + " There is no other Player.");
+            stop();
+            return false;
+        }*/
+
+        if (players.getKey() == null) players.setKey(new ComputerGamePlayer(this, enFrontAr, ownFrontAr, true));
+        if (players.getValue() == null) players.setValue(new ComputerGamePlayer(this, enBackAr, ownBackAr, false));
+
+        return true;
+    }
+
 
     /**
      * Stops the game and destroys the stage.
      */
     public void destroy(){
-        this.stop();
+        exitGame();
+
         builder.destroyGame();
         if (BattleshipGame.GAMES.containsValue(this)) {
-            BattleshipGame.GAMES.remove(ExLocation.getUniqueString(this.getLocation()));
+            BattleshipGame.GAMES.remove(ExLocation.getUniqueString(this.getLoc()));
         }
+    }
+
+    /**
+     * Exits the game and make it ready for next time.
+     */
+    public void exitGame(){
+        //Clear all players -> stages
+        if (players != null) players.forEach(BasicGamePlayer::clear);
+
+        //Stops and renew the timer
+        super.stop();
+        timer = new Timer();
+        task = new TimerTask() {
+            @Override
+            public void run() {
+                tick();
+            }
+        };
+
+        isRunning = false;
+        players = null;
+    }
+
+    /**
+     * @return Returns if @param player is currently playing.
+     */
+    public boolean isPlaying(Player player){
+        final AtomicBoolean flag = new AtomicBoolean(false);
+        players.forEach(basicGamePlayer -> {
+            if (basicGamePlayer instanceof HumanGamePlayer){
+                if (((HumanGamePlayer) basicGamePlayer).getPlayer().getName().equals(player.getName())) {
+                    flag.set(true);
+                }
+            }
+        });
+        return flag.get();
     }
 }
