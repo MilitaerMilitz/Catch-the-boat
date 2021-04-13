@@ -3,7 +3,7 @@ This plugin enables Battleship (aka. Catch the boat) in Minecraft. This plugin i
 When you notice bugs please report them in Issues tab.
 
 # Install
-First you need to download the plugin in release tab. Then you just need to put in into your plugins folder.
+First you need to download the plugin in release tab. Then you just need to put it into your plugins folder.
 
 
 These Plugin needs NBT-API 2.6.0 and StructureBlockLib 2.1.0 to run. Put both with CatchTheBoat.jar in plugins folder. 
