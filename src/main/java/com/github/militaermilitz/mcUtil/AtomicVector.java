@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
  * @author Alexander Ley
  * @version 1.0
  * This class represents a vector which is not mutable like the normal vector.
- * The AtomicVector cannot be changed by using operations.
+ * -> The AtomicVector cannot be changed by using operations.
  */
 public class AtomicVector extends Vector {
 

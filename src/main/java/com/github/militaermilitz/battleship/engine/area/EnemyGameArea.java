@@ -6,13 +6,16 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Alexander Ley
- * @version 1.0
+ * @version 1.1
  * This Class handles all operations based on the game area which is showing the enemies boats.
  */
 public class EnemyGameArea extends BasicGameArea{
+
+    private final Direction xDir;
 
     /**
      * @param loc Location (Zero point) of the area
@@ -20,7 +23,14 @@ public class EnemyGameArea extends BasicGameArea{
      */
     public EnemyGameArea(@NotNull Location loc, int width, int height, @NotNull Direction gameDir, boolean isFront) {
         super(loc, width, height,
-              ((isFront) ? gameDir.getOpposite() : gameDir).getRelVecX(), new Vector(0, -1, 0), gameDir);
+              ((isFront) ? gameDir.rotate270() : gameDir.rotate90()).getRelVecZ(), new Vector(0, -1, 0), gameDir);
+
+        if (isFront){
+            this.xDir = gameDir.rotate270();
+        }
+        else {
+            this.xDir = gameDir.rotate90();
+        }
     }
 
     /**
@@ -28,14 +38,13 @@ public class EnemyGameArea extends BasicGameArea{
      * @return Returns null if location is not in area.
      */
     @Override
-    public HomogenTuple<Integer> getCoordFromLocation(@NotNull Location location){
-        final Direction normDir = Direction.getFromVector(xVector.clone().crossProduct(yVector.clone()));
+    public @Nullable HomogenTuple<Integer> getCoordsFromLocation(@NotNull Location location){
         final Vector coords = Direction.SOUTH.subtractRelative().apply(loc, location.toVector()).toVector();
 
         int xCoord = (gameDir.XZswaped()) ? coords.getBlockZ() : coords.getBlockX();
         int yCoord = coords.getBlockY();
 
-        if (xCoord < 0 && (normDir == Direction.NORTH || normDir == Direction.WEST)) xCoord *= -1;
+        if (xDir == Direction.EAST || xDir == Direction.SOUTH) xCoord *= -1;
 
         //Return null if coords are not in game area
         if (((gameDir.XZswaped()) ? coords.getBlockX() != 0 : coords.getBlockZ() != 0) || xCoord < 0 || xCoord >= width || yCoord < 0 || yCoord >= height) return null;
@@ -47,7 +56,7 @@ public class EnemyGameArea extends BasicGameArea{
      * @return Returns Material to render when area[x][y] == true and area[x][y] == false or the player is locking on.
      */
     @Override
-    public HomogenTuple<Material> getMarkMaterial() {
+    public @NotNull HomogenTuple<Material> getMarkMaterial() {
         return new HomogenTuple<>(Material.LIME_CONCRETE, Material.RED_CONCRETE);
     }
 
@@ -55,8 +64,15 @@ public class EnemyGameArea extends BasicGameArea{
      * @return Returns Material to render when area[x][y] == null.
      */
     @Override
-    public Material getBasicMaterial() {
+    public @NotNull Material getBasicMaterial() {
         return Material.LIGHT_BLUE_CONCRETE;
     }
 
+    public void setBool(int x, int y, @Nullable Boolean bool){
+        area[x][y] = bool;
+    }
+
+    public boolean isAlreadyShoot(int x, int y){
+        return area[x][y] != null;
+    }
 }

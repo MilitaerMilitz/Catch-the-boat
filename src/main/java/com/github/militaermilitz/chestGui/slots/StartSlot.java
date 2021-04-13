@@ -27,6 +27,6 @@ public class StartSlot extends ChestGuiSlot {
 
     @Override
     public void onAction(Player player, Location location) {
-        Objects.requireNonNull(parseChestGui(location)).parseGame().start(0, 250);
+        Objects.requireNonNull(Objects.requireNonNull(parseChestGui(location)).parseGame()).start(0, 5);
     }
 }

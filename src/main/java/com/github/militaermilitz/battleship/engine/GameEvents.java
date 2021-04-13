@@ -5,7 +5,6 @@ import com.github.militaermilitz.battleship.engine.player.BasicGamePlayer;
 import com.github.militaermilitz.battleship.engine.player.HumanGamePlayer;
 import com.github.militaermilitz.mcUtil.StageType;
 import org.bukkit.ChatColor;
-import org.bukkit.entity.Bat;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -13,15 +12,14 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-
-import java.util.concurrent.atomic.AtomicReference;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 /**
  * @author Alexander Ley
- * @version 1.0
+ * @version 1.1
  * This Class handles all game boats events.
  */
-public class BoatPlacingEvents implements Listener {
+public class GameEvents implements Listener {
 
     @EventHandler
     public void onPlaceBoat(PlayerInteractEvent event){
@@ -88,5 +86,30 @@ public class BoatPlacingEvents implements Listener {
         if (BattleshipGame.GAMES.values().stream().anyMatch(game -> game.isPlaying(event.getPlayer()))){
             event.setCancelled(true);
         }
+    }
+
+    @EventHandler
+    public void performMove(PlayerInteractEvent event){
+        final BattleshipGame game = BattleshipGame.getGameFromPlayer(event.getPlayer());
+        if (game == null) return;
+
+        final HumanGamePlayer gamePlayer = game.getPlayingPlayer(event.getPlayer());
+
+        if (game.allPlayersReady() && game.getMovePlayer() == gamePlayer){
+            assert gamePlayer != null;
+
+            if (!gamePlayer.shootEnemyBoats()){
+                gamePlayer.getPlayer().sendMessage(ChatColor.RED + "Cannot shoot that field.");
+            }
+        }
+    }
+
+    /**
+     * End Game when player is leaving server while playing.
+     */
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event){
+        final BattleshipGame game = BattleshipGame.getGameFromPlayer(event.getPlayer());
+        if (game != null) game.stop();
     }
 }

@@ -2,7 +2,7 @@ package com.github.militaermilitz;
 
 import com.github.militaermilitz.battleship.BattleshipGame;
 import com.github.militaermilitz.battleship.BattleshipGameFile;
-import com.github.militaermilitz.battleship.engine.BoatPlacingEvents;
+import com.github.militaermilitz.battleship.engine.GameEvents;
 import com.github.militaermilitz.command.BattleshipCommand;
 import com.github.militaermilitz.chestGui.ChestGuiEvents;
 import com.github.militaermilitz.mcUtil.ExLocation;
@@ -49,7 +49,7 @@ public final class CatchTheBoat extends JavaPlugin {
             ioException.printStackTrace();
         }
         getServer().getPluginManager().registerEvents(new ChestGuiEvents(), this);
-        getServer().getPluginManager().registerEvents(new BoatPlacingEvents(), this);
+        getServer().getPluginManager().registerEvents(new GameEvents(), this);
         Objects.requireNonNull(getCommand("battleship")).setExecutor(new BattleshipCommand(this));
     }
 

@@ -1,7 +1,11 @@
 package com.github.militaermilitz.util;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 /**
  * @author Alexander Ley
@@ -47,5 +51,12 @@ public class HomogenTuple<T> extends Tuple<T, T> {
     public void forEach(Consumer<? super T> action) {
         action.accept(getKey());
         action.accept(getValue());
+    }
+
+    /**
+     * @return Returns a stream with key and value inside.
+     */
+    public Stream<T> stream(){
+        return new ArrayList<>(Arrays.asList(getKey(), getValue())).stream();
     }
 }

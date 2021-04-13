@@ -13,7 +13,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.HashMap;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -74,11 +74,11 @@ public class ChestGuiEvents implements Listener {
 
             if (clickedStack != null) {
                 try {
-                    chestGui.getSlots().stream()
+                    final List<ChestGuiSlot> slotList = chestGui.getSlots().stream()
                             .filter(chestGuiSlot -> clickedStack.equals(chestGuiSlot.getStack()))
-                            .collect(Collectors.toList())
-                            .get(0)
-                            .onAction((Player) event.getWhoClicked(), location);
+                            .collect(Collectors.toList());
+
+                    slotList.get(0).onAction((Player) event.getWhoClicked(), location);
                 }
                 catch (IndexOutOfBoundsException ignored){ }
 

@@ -1,18 +1,23 @@
 package com.github.militaermilitz.battleship;
 
+import com.github.militaermilitz.CatchTheBoat;
 import com.github.militaermilitz.chestGui.ChestGui;
 import com.github.militaermilitz.chestGui.GuiPresets;
+import com.github.militaermilitz.exception.NoContainerException;
 import com.github.militaermilitz.mcUtil.Direction;
 import com.github.militaermilitz.mcUtil.ExLocation;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.Container;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.logging.Level;
+
 /**
  * @author Alexander Ley
- * @version 1.1
+ * @version 1.2
  * This class handles the battleshipGame Menus.
  */
 public class BattleshipMenu {
@@ -67,15 +72,18 @@ public class BattleshipMenu {
         assert world != null;
 
         //Set first Guis
-        this.frontGui = new ChestGui(GuiPresets.START_GUI, frontLoc, game.getStageType(), game.getDir(), true);
-        this.backGui = new ChestGui(GuiPresets.START_GUI, backLoc, game.getStageType(), game.getDir(), false);
+        try {
+            this.frontGui = new ChestGui(GuiPresets.START_GUI, frontLoc, game.getStageType(), game.getDir(), true);
+            this.backGui = new ChestGui(GuiPresets.START_GUI, backLoc, game.getStageType(), game.getDir(), false);
+        }
+        catch (NoContainerException exception){
+            CatchTheBoat.LOGGER.log(Level.SEVERE, "ChestGui Block is not a container -> removing Game Stage.", exception);
+            game.destroy();
+            return;
+        }
 
         //Set Menu initialized
         isInitialized = true;
-    }
-
-    BattleshipGame getGame() {
-        return game;
     }
 
     /**
@@ -83,8 +91,16 @@ public class BattleshipMenu {
      * If one presets is null, it will be ignored.
      */
     public void changeGuis(@Nullable GuiPresets frontGui, @Nullable GuiPresets backGui){
-        if (frontGui != null) this.frontGui = new ChestGui(frontGui, frontLoc, game.getStageType(), game.getDir(), true);
-        if (backGui != null) this.backGui = new ChestGui(backGui, backLoc, game.getStageType(), game.getDir(), false);
+        try {
+            if (frontGui != null)
+                this.frontGui = new ChestGui(frontGui, frontLoc, game.getStageType(), game.getDir(), true);
+            if (backGui != null)
+                this.backGui = new ChestGui(backGui, backLoc, game.getStageType(), game.getDir(), false);
+        }
+        catch (NoContainerException exception){
+            CatchTheBoat.LOGGER.log(Level.SEVERE, "ChestGui Block is not a container -> removing Game Stage.", exception);
+            game.destroy();
+        }
     }
 
     /**
@@ -97,5 +113,13 @@ public class BattleshipMenu {
         this.backGui.clearInventory();
         this.frontGui = null;
         this.backGui = null;
+    }
+
+    /**
+     * @return Returns if all chestGuis are alive and usable.
+     */
+    public boolean chestGuisAlive(){
+        return frontGui.getLocation().getBlock().getState() instanceof Container &&
+                    backGui.getLocation().getBlock().getState() instanceof Container;
     }
 }

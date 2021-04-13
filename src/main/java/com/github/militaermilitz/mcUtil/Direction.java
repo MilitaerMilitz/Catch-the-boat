@@ -6,21 +6,20 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Consumer;
 import org.bukkit.util.Vector;
 
-import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
  * @author Alexander Ley
- * @version 1.3
+ * @version 1.4
  * This enum handles different Directions and offers Methods to do ^ ^ ^ things (Relative to direction).
  */
 public enum Direction {
-    SOUTH(new Vector(1, 0, 0), new Vector(0, 1, 0), new Vector(0, 0, 1)),
-    NORTH(new Vector(-1, 0, 0), new Vector(0, 1, 0), new Vector(0, 0, -1)),
-    WEST(new Vector(0, 0, 1), new Vector(0, 1, 0), new Vector(-1, 0, 0)),
-    EAST(new Vector(0, 0, -1), new Vector(0, 1, 0), new Vector(1, 0, 0));
+    SOUTH(new AtomicVector(1, 0, 0), new AtomicVector(0, 1, 0), new AtomicVector(0, 0, 1)),
+    NORTH(new AtomicVector(-1, 0, 0), new AtomicVector(0, 1, 0), new AtomicVector(0, 0, -1)),
+    WEST(new AtomicVector(0, 0, 1), new AtomicVector(0, 1, 0), new AtomicVector(-1, 0, 0)),
+    EAST(new AtomicVector(0, 0, -1), new AtomicVector(0, 1, 0), new AtomicVector(1, 0, 0));
 
     //Relative direction vectors.
     private final Vector relVecX, relVecY, relVecZ;
@@ -70,8 +69,12 @@ public enum Direction {
      * Get the yaw in degrees the direction is pointing to.
      */
     public float getYaw(){
-        final Vector align = new Vector(0, 0, 1);
-        return (float) Math.toDegrees(align.angle(getRelVecZ()));
+        switch (this){
+            case NORTH: return 180;
+            case EAST: return 270;
+            case SOUTH: return 0;
+            default: return 90;
+        }
     }
 
     /**

@@ -1,19 +1,21 @@
 package com.github.militaermilitz.battleship;
 
+import com.github.militaermilitz.CatchTheBoat;
 import com.github.militaermilitz.battleship.engine.area.EnemyGameArea;
 import com.github.militaermilitz.battleship.engine.area.OwnGameArea;
 import com.github.militaermilitz.battleship.engine.player.BasicGamePlayer;
-import com.github.militaermilitz.battleship.engine.player.ComputerGamePlayer;
 import com.github.militaermilitz.battleship.engine.player.HumanGamePlayer;
 import com.github.militaermilitz.chestGui.GuiPresets;
 import com.github.militaermilitz.exception.NotEnoughSpaceException;
-import com.github.militaermilitz.mcUtil.Direction;
-import com.github.militaermilitz.mcUtil.ExLocation;
-import com.github.militaermilitz.mcUtil.StageType;
-import com.github.militaermilitz.mcUtil.Structure;
+import com.github.militaermilitz.mcUtil.*;
 import com.github.militaermilitz.util.HomogenTuple;
-import com.github.militaermilitz.util.Tickable;
-import org.bukkit.*;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -23,16 +25,18 @@ import org.jetbrains.annotations.Nullable;
 
 import java.net.URISyntaxException;
 import java.util.HashMap;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 /**
  * @author Alexander Ley
- * @version 1.5
+ * @version 1.8
  * This Class handles all action around the game and includes the game loop.
  */
-public class BattleshipGame extends Tickable {
+public class BattleshipGame extends BukkitTickable {
 
     /**
      * All Games Instances
@@ -51,10 +55,15 @@ public class BattleshipGame extends Tickable {
     private final BattleshipGameBuilder builder;
     private HomogenTuple<BasicGamePlayer> players = null;
 
+    /**
+     * Saves reference to player which can shoot.
+     */
+    private BasicGamePlayer movePlayer = null;
+
     private boolean isRunning = false;
 
     /**
-     * Construct a new game.
+     * Creates a new game und tries to build the stage.
      * @param player Player for messages.
      * @param location Origin Location
      * @param plugin Needed for loading the structure.
@@ -62,6 +71,7 @@ public class BattleshipGame extends Tickable {
      * @throws NotEnoughSpaceException If not enough space.
      */
     BattleshipGame(@NotNull StageType stageType, @NotNull Location location, @Nullable Player player, @NotNull Plugin plugin, boolean buildStage) throws NotEnoughSpaceException {
+        super(plugin);
         this.stageType = stageType;
         this.plugin = plugin;
 
@@ -95,13 +105,27 @@ public class BattleshipGame extends Tickable {
     }
 
     /**
-     * This class creates a new game und tries to build the stage.
+     * Creates a new game und tries to build the stage.
      * @param stageType Defines if game is in small or big version.
      * @param location Origin Location
      * @throws NotEnoughSpaceException if game cannot build.
      */
     public BattleshipGame(@NotNull StageType stageType, @NotNull Location location, @Nullable Player player, @NotNull Plugin plugin) throws NotEnoughSpaceException, URISyntaxException {
         this(stageType, location, player, plugin, true);
+    }
+
+    /**
+     * @return Returns right game instance from playing player.
+     */
+    public static @Nullable BattleshipGame getGameFromPlayer(Player player){
+        final List<BattleshipGame> games = BattleshipGame.GAMES.values().stream()
+                .filter(battleshipGame -> battleshipGame.isPlaying(player))
+                .collect(Collectors.toList());
+
+        if (games.isEmpty()) return null;
+        assert games.size() == 1;
+
+        return games.get(0);
     }
 
     //Getter
@@ -121,7 +145,7 @@ public class BattleshipGame extends Tickable {
         return new ExLocation(this.goalLoc);
     }
 
-    public Plugin getPlugin() {
+    Plugin getPlugin() {
         return plugin;
     }
 
@@ -133,6 +157,10 @@ public class BattleshipGame extends Tickable {
         return players;
     }
 
+    public BasicGamePlayer getMovePlayer() {
+        return movePlayer;
+    }
+
     /**
      * Starts the game.
      * @param delay  Start delay.
@@ -142,8 +170,9 @@ public class BattleshipGame extends Tickable {
     public void start(long delay, long period) {
         //Game cannot be started twice.
         if (isRunning) {
+            CatchTheBoat.LOGGER.log(Level.SEVERE, "Game cannot be started twice. -> Game will be removed.");
             destroy();
-            throw new IllegalStateException("Game is already running.");
+            return;
         }
         isRunning = true;
 
@@ -179,6 +208,9 @@ public class BattleshipGame extends Tickable {
     @Override
     public void tick() {
         if (players != null) {
+            final boolean allPlayersReady = allPlayersReady();
+
+            //Player Loop
             players.forEach(basicGamePlayer -> {
 
                 if (basicGamePlayer != null) {
@@ -186,10 +218,61 @@ public class BattleshipGame extends Tickable {
 
                     if (basicGamePlayer instanceof HumanGamePlayer) {
                         final HumanGamePlayer gamePlayer = (HumanGamePlayer) basicGamePlayer;
-                        gamePlayer.getOwnGameAr().markBlock(plugin, gamePlayer.getPlayer());
+                        final Player player = gamePlayer.getPlayer();
+
+                        //Boat placing
+                        if (!allPlayersReady) {
+                            gamePlayer.getOwnGameAr().markBlock(player);
+                        }
+                        //Shooting
+                        else{
+                            if (basicGamePlayer == movePlayer){
+                                gamePlayer.getEnGameAr().markBlock( player);
+                                player.spigot().sendMessage(ChatMessageType.ACTION_BAR,
+                                    TextComponent.fromLegacyText(ChatColor.GOLD + "Its your turn. Shoot the enemies Field.")
+                                );
+                            }
+                            else {
+                                player.spigot().sendMessage(ChatMessageType.ACTION_BAR,
+                                    TextComponent.fromLegacyText(ChatColor.RED + "Waiting for enemy to shoot.")
+                                );
+                            }
+                        }
+
+                        //Waiting fro enemy to confirm boat positions.
+                        if (!allPlayersReady && gamePlayer.isReady()) {
+                            player.spigot().sendMessage(ChatMessageType.ACTION_BAR,
+                                TextComponent.fromLegacyText(ChatColor.GOLD + "Waiting for enemy.")
+                            );
+                        }
+                    }
+
+                    //If one player has won.
+                    if (allPlayersReady() && basicGamePlayer.hasWon()){
+                        if (basicGamePlayer instanceof  HumanGamePlayer){
+                            final Player player = ((HumanGamePlayer) basicGamePlayer).getPlayer();
+                            player.sendTitle("", org.bukkit.ChatColor.GREEN + "You are the Winner", 20, 60, 30);
+
+                            final BasicGamePlayer basicEnemy = getEnemy(basicGamePlayer);
+
+                            if (basicEnemy instanceof HumanGamePlayer){
+                                final Player enemy = ((HumanGamePlayer) basicEnemy).getPlayer();
+                                enemy.sendTitle("", org.bukkit.ChatColor.RED + "You have lost", 20, 60, 30);
+                            }
+                        }
+
+                        stop();
                     }
                 }
+
+
             });
+
+            //Tests if ChestGuis are alive and if not -> Removing stage
+            if (!menu.chestGuisAlive()){
+                CatchTheBoat.LOGGER.log(Level.SEVERE, "ChestGui Block is not a container -> removing Game Stage.");
+                this.destroy();
+            }
         }
     }
 
@@ -232,7 +315,7 @@ public class BattleshipGame extends Tickable {
                 dir.addRelative().apply(getLoc(), new Vector(1, dim.getBlockY() - 3, dim.getBlockZ() / 2 + 1)),
                 dim.getBlockX() - 2,
                 dim.getBlockY() - 6,
-                dir, true
+                dir, false
         );
 
         final OwnGameArea ownFrontAr = new OwnGameArea(
@@ -259,25 +342,40 @@ public class BattleshipGame extends Tickable {
             if (!flagFront && ExLocation.intersects(loc, midLocEnd, player.getLocation(), dir)){
                 players.setKey(new HumanGamePlayer(this, player, player.getGameMode(),enFrontAr, ownFrontAr, true));
                 player.setGameMode(GameMode.ADVENTURE);
+
+                Location tpLoc = dir.addRelative().apply(getLoc(), new Vector(4, 6, 2));
+                tpLoc.add(new Vector(0.5, 0, 0.5));
+                tpLoc.setYaw(dir.getYaw());
+
+                player.teleport(tpLoc);
                 flagFront = true;
             }
             //Search for back player
             else if (!flagBack && ExLocation.intersects(midLocStart, goalLoc, player.getLocation(), dir)){
                 players.setValue(new HumanGamePlayer(this, player, player.getGameMode(), enBackAr, ownBackAr, false));
                 player.setGameMode(GameMode.ADVENTURE);
+
+                Location tpLoc = dir.addRelative().apply(getLoc(), new Vector(4, 6,  (stageType == StageType.SMALL) ? 28 : 40));
+                tpLoc.add(new Vector(0.5, 0, 0.5));
+                tpLoc.setYaw(dir.getOpposite().getYaw());
+
+                player.teleport(tpLoc);
                 flagBack = true;
             }
             if (flagFront && flagBack) break;
         }
 
-        /*if (!flagFront || !flagBack) {
-            if (flagFront.get()) ((HumanGamePlayer)players.getKey()).getPlayer().sendMessage(ChatColor.RED + " There is no other Player.");
+        //TODO Change
+        if (!flagFront || !flagBack) {
+            if (flagFront) ((HumanGamePlayer)players.getKey()).getPlayer().sendMessage(ChatColor.RED + " There is no other Player.");
             stop();
             return false;
-        }*/
+        }
 
-        if (players.getKey() == null) players.setKey(new ComputerGamePlayer(this, enFrontAr, ownFrontAr, true));
-        if (players.getValue() == null) players.setValue(new ComputerGamePlayer(this, enBackAr, ownBackAr, false));
+        /*if (players.getKey() == null) players.setKey(new ComputerGamePlayer(this, enFrontAr, ownFrontAr, true));
+        if (players.getValue() == null) players.setValue(new ComputerGamePlayer(this, enBackAr, ownBackAr, false));*/
+
+        this.movePlayer = players.getKey();
 
         return true;
     }
@@ -300,17 +398,10 @@ public class BattleshipGame extends Tickable {
      */
     public void exitGame(){
         //Clear all players -> stages
-        if (players != null) players.forEach(BasicGamePlayer::clear);
+        if (players != null) players.stream().filter(Objects::nonNull).forEach(BasicGamePlayer::clear);
 
         //Stops and renew the timer
         super.stop();
-        timer = new Timer();
-        task = new TimerTask() {
-            @Override
-            public void run() {
-                tick();
-            }
-        };
 
         isRunning = false;
         players = null;
@@ -319,15 +410,68 @@ public class BattleshipGame extends Tickable {
     /**
      * @return Returns if @param player is currently playing.
      */
-    public boolean isPlaying(Player player){
+    public boolean isPlaying(@Nullable Player player){
+        if (players == null || player == null) return false;
         final AtomicBoolean flag = new AtomicBoolean(false);
         players.forEach(basicGamePlayer -> {
-            if (basicGamePlayer instanceof HumanGamePlayer){
-                if (((HumanGamePlayer) basicGamePlayer).getPlayer().getName().equals(player.getName())) {
-                    flag.set(true);
+            if (basicGamePlayer != null) {
+                if (basicGamePlayer instanceof HumanGamePlayer) {
+                    if (((HumanGamePlayer) basicGamePlayer).getPlayer().getName().equals(player.getName())) {
+                        flag.set(true);
+                    }
                 }
             }
         });
         return flag.get();
+    }
+
+    /**
+     * @return Returns if all players have confirmed boat positions.
+     */
+    public boolean allPlayersReady() {
+        if (players == null) return false;
+        return players.stream().allMatch(gamePlayer -> gamePlayer != null && gamePlayer.isReady());
+    }
+
+    /**
+     * @return Returns playing BasicGamePlayer from player.
+     */
+    public @Nullable HumanGamePlayer getPlayingPlayer(@NotNull Player player){
+        final List<HumanGamePlayer> gamePlayerList =  players.stream()
+                .filter(basicGamePlayer -> basicGamePlayer instanceof HumanGamePlayer)
+                .map(basicGamePlayer -> ((HumanGamePlayer) basicGamePlayer))
+                .filter(humanGamePlayer -> humanGamePlayer.equalsPlayer(player))
+                .collect(Collectors.toList());
+
+        if (gamePlayerList.isEmpty()) return null;
+        return gamePlayerList.get(0);
+    }
+
+    /**
+     * Isolates the HumanGamePlayer.
+     */
+    public void isolatePlayer(@NotNull HumanGamePlayer gamePlayer){
+        final boolean isFront = gamePlayer.isFront();
+        gamePlayer.setIsolated();
+        builder.isolatePlayer(isFront);
+        menu.changeGuis((isFront) ? GuiPresets.WAITING_GUI : null, (!isFront) ? GuiPresets.WAITING_GUI : null);
+    }
+
+    /**
+     * Swaps Move Player -_-
+     */
+    public void swapMovePlayer(){
+        if (movePlayer.isFront()) movePlayer = players.getValue();
+        else movePlayer = players.getKey();
+    }
+
+    /**
+     * @return Returns Enemy from BasicGamePlayer.
+     */
+    public @Nullable BasicGamePlayer getEnemy(@NotNull BasicGamePlayer gamePlayer){
+        if (players == null) return null;
+
+        if (gamePlayer.isFront()) return players.getValue();
+        else return players.getKey();
     }
 }

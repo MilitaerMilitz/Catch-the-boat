@@ -6,9 +6,7 @@ import java.util.TimerTask;
 /**
  * @author Alexander Ley
  * @version 1.0
- *
  * Represents an Object with Timer
- *
  */
 public abstract class Tickable {
     protected Timer timer = new Timer();

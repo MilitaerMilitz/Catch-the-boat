@@ -1,24 +1,24 @@
 package com.github.militaermilitz.battleship.engine.area;
 
-import com.github.militaermilitz.CatchTheBoat;
 import com.github.militaermilitz.mcUtil.Direction;
 import com.github.militaermilitz.mcUtil.ExLocation;
 import com.github.militaermilitz.util.HomogenTuple;
-import org.bukkit.*;
-import org.bukkit.entity.*;
-import org.bukkit.plugin.Plugin;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Entity;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.concurrent.CountDownLatch;
 import java.util.function.BiConsumer;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
  * @author Alexander Ley
- * @version 1.0
+ * @version 1.1
  * This Class handles all operations based on the game area which is showing the own boats.
  */
 public class OwnGameArea extends BasicGameArea{
@@ -34,6 +34,15 @@ public class OwnGameArea extends BasicGameArea{
      * Saves all direction of the boats.
      */
     private final Direction[][] dirCache;
+    /**
+     * Saves which boats was shot to render boat sinking.
+     */
+    private final Boolean[][] shotCache;
+
+    /**
+     * Regulating variable for rendering, when player has confirmed boat positions.
+     */
+    private Boolean isIsolated = false;
 
     /**
      * @param loc Location (Zero point) of the area
@@ -45,6 +54,7 @@ public class OwnGameArea extends BasicGameArea{
 
         boatMarker = new ArmorStand[width][height];
         dirCache = new Direction[width][height];
+        shotCache = new Boolean[width][height];
 
         if (isFront){
             this.xDir = gameDir.rotate270();
@@ -57,11 +67,19 @@ public class OwnGameArea extends BasicGameArea{
     }
 
     /**
+     * Set game area "isolated" -> switch render mode
+     */
+    public void setIsolated() {
+        if (isIsolated) throw new IllegalStateException("It is already isolated");
+        isIsolated = null;
+    }
+
+    /**
      * Calculates x and y coordinates based on the difference between loc and @param location.
      * @return Returns null if location is not in area.
      */
     @Override
-    public HomogenTuple<Integer> getCoordFromLocation(@NotNull Location location) {
+    public @Nullable HomogenTuple<Integer> getCoordsFromLocation(@NotNull Location location) {
         final Vector coords = Direction.SOUTH.subtractRelative().apply(loc, location.toVector()).toVector();
 
         int xCoord = (gameDir.XZswaped()) ? coords.getBlockZ() : coords.getBlockX();
@@ -79,7 +97,7 @@ public class OwnGameArea extends BasicGameArea{
      * @return Returns Material to render when area[x][y] == true and area[x][y] == false or the player is locking on.
      */
     @Override
-    public HomogenTuple<Material> getMarkMaterial() {
+    public @NotNull HomogenTuple<Material> getMarkMaterial() {
         return new HomogenTuple<>(Material.LIME_STAINED_GLASS, Material.RED_STAINED_GLASS);
     }
 
@@ -87,85 +105,106 @@ public class OwnGameArea extends BasicGameArea{
      * @return Returns Material to render when area[x][y] == null.
      */
     @Override
-    public Material getBasicMaterial() {
+    public @NotNull Material getBasicMaterial() {
         return Material.BLUE_STAINED_GLASS;
     }
 
     /**
      * This method renders the game area and manages boat entities.
-     * @param plugin Is needed for placing block definitely on the Bukkit main Thread.
      * @param additionalRenderTask task which is executed after the basic render operation.
      */
     @Override
-    public void render(@NotNull Plugin plugin, @Nullable BiConsumer<Integer, Integer> additionalRenderTask) {
-        super.render(plugin, (x, y) -> {
-            final ArmorStand stand =  boatMarker[x][y];
+    public void render(@Nullable BiConsumer<Integer, Integer> additionalRenderTask) {
+        //One-time boat teleport
+        if (isIsolated == null){
+            forEach((x, y) -> {
+                final ArmorStand stand = boatMarker[x][y];
+                if (stand != null){
+                    final String UUID = stand.getUniqueId().toString();
+                    Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(),
+                   "execute as " + UUID + " at @s run teleport " + UUID + " ~ ~-1 ~");
+                }
+            });
+            isIsolated = true;
+        }
+        //Not isolated render mode -> player is in boat playing mode
+        else if (!isIsolated) {
+            super.render((x, y) -> {
+                final ArmorStand stand = boatMarker[x][y];
 
-            //Spawn boat
-            if (area[x][y] && stand == null){
-                Location loc = getLocationFromCoords(x, y).add(new Vector(0, 1, 0));
-                loc = new Location(loc.getWorld(), loc.getBlockX() + 0.5, loc.getY(), loc.getZ() + 0.5);
+                //Spawn boat
+                if (isBoat(x, y) && stand == null) {
+                    Location loc = getLocationFromCoords(x, y).add(new Vector(0, 1, 0));
+                    loc = new Location(loc.getWorld(), loc.getBlockX() + 0.5, loc.getY(), loc.getZ() + 0.5);
 
-                final World world = loc.getWorld();
-                assert world != null;
+                    final World world = loc.getWorld();
+                    assert world != null;
 
-                final Location finalLoc = loc;
+                    final Location finalLoc = loc;
 
-                final CountDownLatch latch = new CountDownLatch(1);
-
-                Bukkit.getScheduler().runTask(plugin, () -> {
+                    //Spawn Boat
                     Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), "summon armor_stand "
                             + finalLoc.getX() + " " + finalLoc.getY() + " " + finalLoc.getZ() + " "
                             + "{Silent:1b,Invulnerable:1b,Small:1b,Marker:1b,Invisible:1b,NoBasePlate:1b,PersistenceRequired:1b,Tags:[\"CTB\"],"
                             + "Passengers:[{id:\"minecraft:boat\",Invulnerable:1b,Type:\"oak\",Tags:[\"CTB\"]}]}");
-                    latch.countDown();
-                });
 
-                //Waiting for command to be finished.
-                try {
-                    latch.await();
+                    final ArmorStand armorStand = world.getEntities().stream()
+                            .filter(entity -> entity instanceof ArmorStand)
+                            .map(entity -> ((ArmorStand) entity))
+                            .filter(armorStand1 -> ExLocation.equalsPos(armorStand1.getLocation(), finalLoc))
+                            .collect(Collectors.toList()).get(0);
+
+                    boatMarker[x][y] = armorStand;
                 }
-                catch (InterruptedException e) {
-                    CatchTheBoat.LOGGER.log(Level.SEVERE, "Error while spawning boat.", e);
+                //Removes Boat
+                else if (!isBoat(x, y) && stand != null) {
+                    stand.getPassengers().forEach(Entity::remove);
+                    stand.remove();
+                }
+                //Rotate boats.
+                else if (stand != null && !stand.getPassengers().isEmpty()) {
+                    stand.getPassengers().forEach(entity -> {
+                        if (dirCache[x][y] != null) {
+                            entity.setRotation(dirCache[x][y].getYaw(), 0);
+                        }
+                    });
                 }
 
-                final ArmorStand armorStand = world.getEntities().stream()
-                        .filter(entity -> entity instanceof ArmorStand)
-                        .map(entity -> ((ArmorStand) entity))
-                        .filter(armorStand1 -> ExLocation.equalsPos(armorStand1.getLocation(), finalLoc))
-                        .collect(Collectors.toList()).get(0);
+                //Executes additional render Tasks
+                if (additionalRenderTask != null) {
+                    additionalRenderTask.accept(x, y);
+                }
+            });
+        }
+        //Isolated render mode -> player is in playing mode
+        else {
+            forEach((x, y) -> {
+                getLocationFromCoords(x, y).getBlock().setType(Material.AIR);
 
-                boatMarker[x][y] = armorStand;
-            }
-            //Removes Boat
-            else if ((!area[x][y] || area[x][y] == null) && stand != null){
-                stand.getPassengers().forEach(Entity::remove);
-                stand.remove();
-            }
-            //Rotate boats.
-            else if (stand != null && !stand.getPassengers().isEmpty()){
-                stand.getPassengers().forEach(entity -> {
-                    if (dirCache[x][y] != null) {
-                        entity.setRotation(dirCache[x][y].getYaw(), 0);
+                if (shotCache[x][y] != null) {
+                    if (!shotCache[x][y]) {
+                        final ArmorStand stand = boatMarker[x][y];
+
+                        if (stand != null) {
+                            final String UUID = stand.getUniqueId().toString();
+
+                            Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(),
+                           "execute as " + UUID + " at @s run teleport " + UUID + " ~ ~-1 ~");
+                        }
+                        shotCache[x][y] = true;
                     }
-                });
-            }
-
-            //Executes additional render Tasks
-            if (additionalRenderTask != null) {
-                additionalRenderTask.accept(x, y);
-            }
-        });
-
+                }
+            });
+        }
     }
 
     /**
      * Clears the area and set the area to null and removes all boats.
-     * @param plugin Is needed for placing block definitely on the Bukkit main Thread.
      */
     @Override
-    public void clear(@NotNull Plugin plugin) {
-        super.clear(plugin);
+    public void clear() {
+        super.clear();
+
         forEach((x, y) -> {
             if (boatMarker[x][y] != null){
                 boatMarker[x][y].getPassengers().forEach(Entity::remove);
@@ -208,6 +247,18 @@ public class OwnGameArea extends BasicGameArea{
             area[wx][wy] = true;
         }
 
+        return true;
+    }
+
+    /**
+     * Executes an enemy attack and configures hitting boats as shot.
+     * @return Returns if it was a hit.
+     */
+    public boolean enemyAttack(int x, int y){
+        if (!isBoat(x, y)) return false;
+
+        area[x][y] = false;
+        shotCache[x][y] = false;
         return true;
     }
 }

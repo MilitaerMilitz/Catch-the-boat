@@ -1,15 +1,12 @@
 package com.github.militaermilitz.battleship.engine.area;
 
 import com.github.militaermilitz.mcUtil.AtomicVector;
-import com.github.militaermilitz.mcUtil.BlockPlacingRunnable;
 import com.github.militaermilitz.mcUtil.Direction;
 import com.github.militaermilitz.mcUtil.ExLocation;
 import com.github.militaermilitz.util.HomogenTuple;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -20,7 +17,7 @@ import java.util.function.BiConsumer;
 
 /**
  * @author Alexander Ley
- * @version 1.0
+ * @version 1.2
  * This Class handles all basic operations for all game areas.
  */
 public abstract class BasicGameArea {
@@ -62,102 +59,100 @@ public abstract class BasicGameArea {
      * Calculates x and y coordinates based on the difference between loc and @param location.
      * @return Returns null if location is not in area.
      */
-    public abstract @Nullable HomogenTuple<Integer> getCoordFromLocation(@NotNull Location location);
+    public abstract @Nullable HomogenTuple<Integer> getCoordsFromLocation(@NotNull Location location);
 
     /**
-     * @return Returns Material to render when area[x][y] == true and area[x][y] == false or the player is locking on.
+     * @return Returns Material to render when (Key) area[x][y] == true and (Value) area[x][y] == false or the player is locking on.
      */
-    public abstract HomogenTuple<Material> getMarkMaterial();
+    public abstract @NotNull HomogenTuple<Material> getMarkMaterial();
 
     /**
      * @return Returns Material to render when area[x][y] == null.
      */
-    public abstract Material getBasicMaterial();
+    public abstract @NotNull Material getBasicMaterial();
 
     /**
      * Tests if a location is on the game area.
      */
     public boolean isInArea(@Nullable Location location) {
         if (location == null) return false;
-        return getCoordFromLocation(location) != null;
+        return getCoordsFromLocation(location) != null;
     }
 
     /**
      * Calculates x and y coordinates based on the block the player is locking on.
      * @return Returns null if location of the block the player is locking on is not in area.
      */
-    public HomogenTuple<Integer> getCoordFromPlayer(@NotNull Player player){
+    public @Nullable HomogenTuple<Integer> getCoordsFromPlayer(@NotNull Player player){
         final Location loc = player.getTargetBlock(new HashSet<>(Arrays.asList(Material.AIR, Material.BARRIER)), 20).getLocation();
-        return getCoordFromLocation(loc);
+        return getCoordsFromLocation(loc);
     }
 
     /**
      * Calculates Location from x and y Coordinates.
      */
-    public Location getLocationFromCoords(int x, int y){
+    public @NotNull Location getLocationFromCoords(int x, int y){
         return getLoc().add(xVector.multiply(x)).add(yVector.multiply(y));
     }
 
     /**
      * This method renders the game area.
-     * @param plugin Is needed for placing block definitely on the Bukkit main Thread.
      * @param additionalRenderTask task which is executed after the basic render operation.
      */
-    public void render(@NotNull Plugin plugin, @Nullable BiConsumer<Integer, Integer> additionalRenderTask){
+    public void render(@Nullable BiConsumer<Integer, Integer> additionalRenderTask){
         forEach((x, y) -> {
             final Location location = getLocationFromCoords(x, y);
 
             if (area[x][y] == null) {
-                Bukkit.getScheduler().runTask(plugin, new BlockPlacingRunnable(location, getBasicMaterial()));
+                location.getBlock().setType(getBasicMaterial());
             }
-            else {
-                Bukkit.getScheduler().runTask(plugin, new BlockPlacingRunnable(location, getMarkMaterial().getValue()));
-                if (additionalRenderTask != null) additionalRenderTask.accept(x, y);
+            else if (area[x][y]){
+                location.getBlock().setType(getMarkMaterial().getKey());
             }
+            else{
+                location.getBlock().setType(getMarkMaterial().getValue());
+            }
+
+            if (additionalRenderTask != null) additionalRenderTask.accept(x, y);
         });
     }
 
     /**
      * Clears the area and set the area to null.
-     * @param plugin Is needed for placing block definitely on the Bukkit main Thread.
      */
-    public void clear(@NotNull Plugin plugin){
+    public void clear(){
         forEach((x, y) -> {
             final Location location = getLocationFromCoords(x, y);
             area[x][y] = null;
-            Bukkit.getScheduler().runTask(plugin, new BlockPlacingRunnable(location, getBasicMaterial()));
+            location.getBlock().setType(getBasicMaterial());
         });
     }
 
     /**
      * Marks the block the player is locking on.
-     * @param plugin Is needed for placing block definitely on the Bukkit main Thread.
      */
-    public void markBlock(@NotNull Plugin plugin, @NotNull Player player){
+    public void markBlock(@NotNull Player player){
         final Location loc = player.getTargetBlock(new HashSet<>(Arrays.asList(Material.AIR, Material.BARRIER)), 20).getLocation();
 
         if (isInArea(loc)){
-            clearMark(plugin);
+            clearMark();
 
-            final HomogenTuple<Integer> coords = getCoordFromLocation(loc);
+            final HomogenTuple<Integer> coords = getCoordsFromLocation(loc);
             assert coords != null;
 
             final int x = coords.getKey(), y = coords.getValue();
 
-            Bukkit.getScheduler().runTask(plugin, new BlockPlacingRunnable(loc, (area[x][y] == null) ?
-                    getMarkMaterial().getKey() : getMarkMaterial().getValue()));
+            if (area[x][y] == null) loc.getBlock().setType(getMarkMaterial().getKey());
         }
     }
 
     /**
      * Removes all marks from area.
-     * @param plugin Is needed for placing block definitely on the Bukkit main Thread.
      */
-    public void clearMark(@NotNull Plugin plugin){
+    public void clearMark(){
         forEach((x, y) -> {
             if (area[x][y] == null){
-                final Location location = getLocationFromCoords(x, y);
-                Bukkit.getScheduler().runTask(plugin, new BlockPlacingRunnable(location, getBasicMaterial()));
+                getLocationFromCoords(x, y).getBlock().setType(getBasicMaterial());
             }
         });
     }
@@ -195,10 +190,17 @@ public abstract class BasicGameArea {
     }
 
     /**
+     * Checks if there is a boat at position (x, y).
+     */
+    public boolean isBoat(int x, int y){
+        return area[x][y] != null && area[x][y];
+    }
+
+    /**
      * Tries to place a boat.
      * @param length Length of the boat.
      * @param direction The direction the boat should placed.
-     * @return Returns if placing was successfully.
+     * @return Returns if placing was successful.
      */
     public boolean placeBoat(int length, int x, int y, @NotNull Direction direction, boolean isFront){
         if (isBoatNotPlaceable(length, x, y, direction, isFront)) return false;
@@ -272,7 +274,19 @@ public abstract class BasicGameArea {
     }
 
     /**
-     * [Debug] Prints the area into console.
+     * Checks if whole area is empty = No boats anymore on the field.
+     */
+    public boolean isAreaEmpty(){
+        for (int x = 0; x < width; x++){
+            for (int y = 0; y < height; y++){
+                if (isBoat(x, y)) return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * [Debug] Prints area into console.
      */
     public void printArea(){
         for (int y = 0; y < height; y++){
@@ -281,7 +295,7 @@ public abstract class BasicGameArea {
                 line.append((area[x][y] == null) ? "e" : ((area[x][y]) ? 1 : 0));
                 if (x != width - 1) line.append(" ");
             }
-            System.out.println(line.toString());
+            System.out.println(line);
         }
     }
 }

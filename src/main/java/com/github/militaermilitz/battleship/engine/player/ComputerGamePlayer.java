@@ -37,4 +37,14 @@ public class ComputerGamePlayer extends BasicGamePlayer{
     public boolean placeBoat() {
         return false;
     }
+
+
+    /**
+     * Shoot enemy boats.
+     * @return Returns if field is "shootable".
+     */
+    @Override
+    public boolean shootEnemyBoats() {
+        return false;
+    }
 }

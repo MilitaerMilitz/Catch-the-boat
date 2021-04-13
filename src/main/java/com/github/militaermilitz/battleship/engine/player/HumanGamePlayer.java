@@ -6,6 +6,7 @@ import com.github.militaermilitz.battleship.engine.area.EnemyGameArea;
 import com.github.militaermilitz.battleship.engine.area.OwnGameArea;
 import com.github.militaermilitz.mcUtil.Direction;
 import com.github.militaermilitz.util.HomogenTuple;
+import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -14,7 +15,7 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Alexander Ley
- * @version 1.0
+ * @version 1.3
  * This Class handles all basic operations for all human players.
  */
 public class HumanGamePlayer extends BasicGamePlayer{
@@ -37,8 +38,18 @@ public class HumanGamePlayer extends BasicGamePlayer{
         this.preMode = (preMode == null) ? GameMode.SURVIVAL : preMode;
     }
 
+    /**
+     * Getter for player.
+     */
     public Player getPlayer() {
         return player;
+    }
+
+    /**
+     * Sets the player isolated -> change ownGameAr render mode.
+     */
+    public void setIsolated(){
+        this.ownGameAr.setIsolated();
     }
 
     /**
@@ -58,17 +69,50 @@ public class HumanGamePlayer extends BasicGamePlayer{
     @Override
     public boolean placeBoat(){
         final ItemStack stack = player.getInventory().getItemInMainHand();
+
         final Integer length = ItemGameBoatStack.getLength(stack);
         if (length == null) return false;
 
-        final HomogenTuple<Integer> coords = ownGameAr.getCoordFromPlayer(player);
+        final HomogenTuple<Integer> coords = ownGameAr.getCoordsFromPlayer(player);
         if (coords == null) return false;
 
         return ownGameAr.placeBoat(length, coords.getKey(), coords.getValue(), Direction.getFromPlayer(player), isFront);
     }
 
     /**
-     * Tests if the @param player quals the playing player.
+     * Shoot enemy boats.
+     * @return Returns if field is "shootable".
+     */
+    @Override
+    public boolean shootEnemyBoats() {
+        final HomogenTuple<Integer> coords = getEnGameAr().getCoordsFromPlayer(player);
+
+        if (coords == null) return false;
+        final int x = coords.getKey(), y = coords.getValue();
+
+        final BasicGamePlayer enemy = game.getEnemy(this);
+        assert enemy != null;
+
+        final boolean hit = enemy.ownGameAr.enemyAttack(x, y);
+
+        if (enGameAr.isAlreadyShoot(x, y)) return false;
+        enemy.renderEnemyAttack(x, y);
+
+        if (hit){
+            player.sendTitle("", ChatColor.GREEN + "Hit", 20, 20, 20);
+            enGameAr.setBool(x, y, true);
+        }
+        else{
+            player.sendTitle("", ChatColor.BLUE + "Water", 20, 20, 20);
+            enGameAr.setBool(x, y, false);
+            game.swapMovePlayer();
+        }
+
+        return true;
+    }
+
+    /**
+     * Tests if the @param player equals the playing player.
      */
     public boolean equalsPlayer(Player player){
         return player.getName().equals(this.player.getName());

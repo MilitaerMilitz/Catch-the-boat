@@ -1,11 +1,10 @@
 package com.github.militaermilitz.chestGui;
 
-import com.github.militaermilitz.CatchTheBoat;
 import com.github.militaermilitz.battleship.BattleshipGame;
+import com.github.militaermilitz.exception.NoContainerException;
 import com.github.militaermilitz.mcUtil.Direction;
 import com.github.militaermilitz.mcUtil.ExLocation;
 import com.github.militaermilitz.mcUtil.StageType;
-import de.tr7zw.nbtapi.NBTItem;
 import de.tr7zw.nbtapi.NBTTileEntity;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -14,15 +13,15 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.logging.Level;
 
 /**
  * @author Alexander Ley
- * @version 1.1
+ * @version 1.2
  * This class represents a chest Gui.
  */
 public class ChestGui {
@@ -50,9 +49,11 @@ public class ChestGui {
      * @param isFront IsFront? For finding the game back.
      * @param slots Slots of the Gui.
      */
-    ChestGui(Location loc, String name, StageType stageType, Direction direction, boolean isFront, List<ChestGuiSlot> slots){
+    ChestGui(Location loc, String name, StageType stageType, Direction direction, boolean isFront, List<ChestGuiSlot> slots) throws NoContainerException {
         final Block block = loc.getBlock();
-        if (!(block.getState() instanceof Container)) throw new IllegalArgumentException("Block is not a container");
+        if (!(block.getState() instanceof Container)) {
+            throw new NoContainerException("Block is not a container");
+        }
 
         this.container = (Container) block.getState();
         this.name = name;
@@ -89,7 +90,7 @@ public class ChestGui {
      * @param isFront IsFront? For finding the game back.
      * @param slots Slots of the Gui.
      */
-    ChestGui(Location loc, String name, StageType stageType, Direction direction, boolean isFront, ChestGuiSlot... slots) {
+    ChestGui(Location loc, String name, StageType stageType, Direction direction, boolean isFront, ChestGuiSlot... slots) throws NoContainerException {
         this(loc, name, stageType, direction, isFront, Arrays.asList(slots));
     }
 
@@ -100,20 +101,15 @@ public class ChestGui {
      * @param direction Direction of the Stage for finding the game instance.
      * @param isFront IsFront? For finding the game back.
      */
-    public ChestGui(GuiPresets presets, Location loc, StageType stageType, Direction direction, boolean isFront){
+    public ChestGui(GuiPresets presets, Location loc, StageType stageType, Direction direction, boolean isFront) throws NoContainerException {
         this(loc, presets.getName(), stageType, direction, isFront, presets.getSlots());
     }
 
-    //Getter
-    Block getBlock(){
-        return this.container.getBlock();
-    }
     public Location getLocation(){
         return new ExLocation(this.container.getLocation());
     }
-    String getName() {
-        return name;
-    }
+
+    //Getter
     List<ChestGuiSlot> getSlots() {
         return slots;
     }
@@ -144,7 +140,7 @@ public class ChestGui {
     /**
      * @return Returns belonging game instance and null if no game instance is found.
      */
-    public BattleshipGame parseGame(){
+    public @Nullable BattleshipGame parseGame(){
         final Direction direction = getDirection();
 
         //Direction Vector pointing from game origin to chest

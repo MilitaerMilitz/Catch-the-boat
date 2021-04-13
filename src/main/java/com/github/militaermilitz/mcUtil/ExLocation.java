@@ -52,7 +52,7 @@ public class ExLocation extends Location {
      * @return Returns if @param loc1 and @param loc2 are pointing to the same point int the world.
      */
     public static boolean equalsPos(Location loc1, Location loc2){
-        if (loc1.getWorld() == loc2.getWorld()) return false;
+        if (loc1.getWorld() != loc2.getWorld()) return false;
         return loc1.toVector().equals(loc2.toVector());
     }
 

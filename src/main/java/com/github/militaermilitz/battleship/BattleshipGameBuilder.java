@@ -2,6 +2,7 @@ package com.github.militaermilitz.battleship;
 
 import com.github.militaermilitz.exception.NotEnoughSpaceException;
 import com.github.militaermilitz.mcUtil.Direction;
+import com.github.militaermilitz.mcUtil.StageType;
 import com.github.militaermilitz.mcUtil.Structure;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -20,14 +21,14 @@ import java.util.stream.Collectors;
 
 /**
  * @author Alexander Ley
- * @version 1.3
+ * @version 1.4
  * This class handles all action to build and destroy the stage.
  */
 public class BattleshipGameBuilder {
 
     private final BattleshipGame game;
 
-    //Blocks which are ignored when load structure
+    //Blocks which are ignored when loading structure
     public static final  List<Material> IGNORED_BLOCKS = Arrays.stream(Material.values())
             .filter(material -> {
                 final String name = material.name();
@@ -130,7 +131,7 @@ public class BattleshipGameBuilder {
                         final Location blockLocation = block.getLocation();
 
                         if (player != null) {
-                            player.sendMessage(ChatColor.DARK_RED + block.getType().getKey().getKey() +
+                            player.sendMessage(ChatColor.RED + block.getType().getKey().getKey() +
                                                        " at (" + blockLocation.getBlockX() + ", " + blockLocation.getBlockY() + ", " + blockLocation.getBlockZ() + ") is blocking.");
                         }
 
@@ -147,5 +148,42 @@ public class BattleshipGameBuilder {
         }
 
         return flag;
+    }
+
+    /**
+     * Isolates the player by placing blocks.
+     */
+    public void isolatePlayer(boolean isFront){
+        final Direction gDir = game.getDir();
+        Location startLoc;
+        Location endLoc;
+
+        if (game.getStageType() == StageType.BIG) {
+            startLoc = gDir.addRelative().apply(game.getLoc(), new Vector(5, 3, (isFront) ? 8 : 34));
+            endLoc = gDir.addRelative().apply(game.getLoc(), new Vector(6, 9, (isFront) ? 8 : 34));
+        }
+        else{
+            startLoc = gDir.addRelative().apply(game.getLoc(), new Vector(4, 3, (isFront) ? 8 : 22));
+            endLoc = gDir.addRelative().apply(game.getLoc(), new Vector(4, 7, (isFront) ? 8 : 22));
+
+        }
+
+        startLoc = new Location(startLoc.getWorld(), Math.min(startLoc.getX(), endLoc.getX()),
+                                Math.min(startLoc.getBlockY(), endLoc.getY()), Math.min(startLoc.getZ(), endLoc.getZ()));
+        endLoc = new Location(endLoc.getWorld(), Math.max(startLoc.getX(), endLoc.getX()),
+                              Math.max(startLoc.getBlockY(), endLoc.getY()), Math.max(startLoc.getZ(), endLoc.getZ()));
+
+        for (int x = startLoc.getBlockX(); x <= endLoc.getBlockX(); x++){
+            for (int y = startLoc.getBlockY(); y <= endLoc.getBlockY(); y++){
+                for (int z = startLoc.getBlockZ(); z <= endLoc.getBlockZ(); z++){
+                    if (y == startLoc.getBlockY()){
+                        new Location(startLoc.getWorld(), x, y, z).getBlock().setType( Material.BIRCH_FENCE);
+                    }
+                    else{
+                        new Location(startLoc.getWorld(), x, y, z).getBlock().setType(Material.BARRIER);
+                    }
+                }
+            }
+        }
     }
 }
