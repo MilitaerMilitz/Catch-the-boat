@@ -1,7 +1,9 @@
 package com.github.militaermilitz.battleship;
 
+import com.github.militaermilitz.CatchTheBoat;
 import com.github.militaermilitz.exception.NotEnoughSpaceException;
 import com.github.militaermilitz.mcUtil.Direction;
+import com.github.militaermilitz.mcUtil.ExLocation;
 import com.github.militaermilitz.mcUtil.StageType;
 import com.github.militaermilitz.mcUtil.Structure;
 import org.bukkit.ChatColor;
@@ -17,6 +19,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -61,19 +64,27 @@ public class BattleshipGameBuilder {
      * Builds a new stage.
      * @throws NotEnoughSpaceException If there is not enough space for creating.
      */
-    void buildGame(@Nullable Player player, @Nullable Consumer<Object> consumer) throws NotEnoughSpaceException {
+    boolean buildGame(@Nullable Player player, @Nullable Consumer<Object> consumer) throws NotEnoughSpaceException {
         if (!haveEnoughSpace(player)) throw new NotEnoughSpaceException("Here ist not enough space to build the game.", game.getLoc());
 
-        loadStructure(game.getStageType().getStructurePreset(), consumer);
+        return loadStructure(game.getStageType().getStructurePreset(), consumer);
     }
 
     /**
      * Loads a structure from Preset.
      * @param presets Structure Preset.
      * @param consumer Task which have to be done directly after loading.
+     * @returns Returns if loading was successful.
      */
-    void loadStructure(Structure.Presets presets, @Nullable Consumer<Object> consumer){
-        presets.getStructure().loadStructure(game.getPlugin(), game.getLoc(), game.getDir(), consumer);
+    boolean loadStructure(Structure.Presets presets, @Nullable Consumer<Object> consumer){
+        try {
+            presets.getStructure().loadStructure(game.getPlugin(), game.getLoc(), game.getDir(), consumer);
+            return true;
+        }
+        catch (Exception e) {
+            CatchTheBoat.LOGGER.log(Level.SEVERE, "Cannot build structure.", e);
+            return false;
+        }
     }
 
     /**
@@ -168,10 +179,12 @@ public class BattleshipGameBuilder {
 
         }
 
+        final Location tmpLoc = new ExLocation(startLoc);
+
         startLoc = new Location(startLoc.getWorld(), Math.min(startLoc.getX(), endLoc.getX()),
-                                Math.min(startLoc.getBlockY(), endLoc.getY()), Math.min(startLoc.getZ(), endLoc.getZ()));
-        endLoc = new Location(endLoc.getWorld(), Math.max(startLoc.getX(), endLoc.getX()),
-                              Math.max(startLoc.getBlockY(), endLoc.getY()), Math.max(startLoc.getZ(), endLoc.getZ()));
+                                Math.min(startLoc.getY(), endLoc.getY()), Math.min(startLoc.getZ(), endLoc.getZ()));
+        endLoc = new Location(endLoc.getWorld(), Math.max(tmpLoc.getX(), endLoc.getX()),
+                              Math.max(tmpLoc.getY(), endLoc.getY()), Math.max(tmpLoc.getZ(), endLoc.getZ()));
 
         for (int x = startLoc.getBlockX(); x <= endLoc.getBlockX(); x++){
             for (int y = startLoc.getBlockY(); y <= endLoc.getBlockY(); y++){

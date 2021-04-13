@@ -8,11 +8,13 @@ import com.github.militaermilitz.mcUtil.StageType;
 import de.tr7zw.nbtapi.NBTTileEntity;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.Container;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
@@ -49,13 +51,13 @@ public class ChestGui {
      * @param isFront IsFront? For finding the game back.
      * @param slots Slots of the Gui.
      */
-    ChestGui(Location loc, String name, StageType stageType, Direction direction, boolean isFront, List<ChestGuiSlot> slots) throws NoContainerException {
-        final Block block = loc.getBlock();
-        if (!(block.getState() instanceof Container)) {
-            throw new NoContainerException("Block is not a container");
+    ChestGui(@NotNull Location loc, String name, @NotNull StageType stageType, @NotNull Direction direction, boolean isFront, @NotNull List<ChestGuiSlot> slots) throws NoContainerException {
+        final BlockState state = loc.getBlock().getState();
+        if (!(state instanceof Container)) {
+            throw new NoContainerException("Block " + loc.getBlock() + " is not a container");
         }
 
-        this.container = (Container) block.getState();
+        this.container = (Container) state;
         this.name = name;
         this.slots = slots;
         this.direction = direction;

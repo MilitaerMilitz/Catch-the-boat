@@ -8,11 +8,11 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.EquipmentSlot;
 
 /**
  * @author Alexander Ley
@@ -23,8 +23,16 @@ public class GameEvents implements Listener {
 
     @EventHandler
     public void onPlaceBoat(PlayerInteractEvent event){
-        if (event.getAction().equals(Action.RIGHT_CLICK_BLOCK)
-            && ItemGameBoatStack.isGameBoat(event.getPlayer().getInventory().getItemInMainHand())
+        if ((event.getHand() == EquipmentSlot.OFF_HAND
+                && ItemGameBoatStack.isGameBoat(event.getPlayer().getInventory().getItemInOffHand()))){
+
+            event.getPlayer().sendMessage(ChatColor.RED + "Cheater: Don't use boat in offhand.");
+            event.setCancelled(true);
+            return;
+        }
+
+        if ((event.getHand() == EquipmentSlot.HAND
+                && ItemGameBoatStack.isGameBoat(event.getPlayer().getInventory().getItemInMainHand()))
         ) {
             event.setCancelled(true);
 
@@ -60,7 +68,8 @@ public class GameEvents implements Listener {
                 }
                 else{
                     //Removes boat from inventory if it was successful.
-                    player.getInventory().removeItem(player.getInventory().getItemInMainHand());
+                    if (event.getHand() == EquipmentSlot.HAND) player.getInventory().removeItem(player.getInventory().getItemInMainHand());
+                    else player.getInventory().removeItem(player.getInventory().getItemInOffHand());
                 }
 
             } catch (IndexOutOfBoundsException ignored){ }
@@ -90,16 +99,18 @@ public class GameEvents implements Listener {
 
     @EventHandler
     public void performMove(PlayerInteractEvent event){
-        final BattleshipGame game = BattleshipGame.getGameFromPlayer(event.getPlayer());
-        if (game == null) return;
+        if (event.getHand() == EquipmentSlot.HAND) {
+            final BattleshipGame game = BattleshipGame.getGameFromPlayer(event.getPlayer());
+            if (game == null) return;
 
-        final HumanGamePlayer gamePlayer = game.getPlayingPlayer(event.getPlayer());
+            final HumanGamePlayer gamePlayer = game.getPlayingPlayer(event.getPlayer());
 
-        if (game.allPlayersReady() && game.getMovePlayer() == gamePlayer){
-            assert gamePlayer != null;
+            if (game.allPlayersReady() && game.getMovePlayer() == gamePlayer) {
+                assert gamePlayer != null;
 
-            if (!gamePlayer.shootEnemyBoats()){
-                gamePlayer.getPlayer().sendMessage(ChatColor.RED + "Cannot shoot that field.");
+                if (!gamePlayer.shootEnemyBoats()) {
+                    gamePlayer.getPlayer().sendMessage(ChatColor.RED + "Cannot shoot that field.");
+                }
             }
         }
     }

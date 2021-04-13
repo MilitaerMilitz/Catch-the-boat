@@ -12,10 +12,8 @@ import com.github.militaermilitz.util.HomogenTuple;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
-import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.World;
+import org.bukkit.*;
+import org.bukkit.entity.Cat;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -52,7 +50,7 @@ public class BattleshipGame extends BukkitTickable {
     //All information to run.
     private final Plugin plugin;
     private final BattleshipMenu menu;
-    private final BattleshipGameBuilder builder;
+    private BattleshipGameBuilder builder;
     private HomogenTuple<BasicGamePlayer> players = null;
 
     /**
@@ -93,15 +91,19 @@ public class BattleshipGame extends BukkitTickable {
         this.menu = new BattleshipMenu(this, true);
 
         //Build Stage
-        BattleshipGameBuilder gameBuilder = new BattleshipGameBuilder(this);
-        if (buildStage) gameBuilder.buildGame(player, o -> menu.initialize(this));
+        BattleshipGameBuilder builder = new BattleshipGameBuilder(this);
+        if (buildStage) {
+            if (!builder.buildGame(player, o -> menu.initialize(this))){
+                if (player != null) player.sendMessage(ChatColor.RED + "Error: cannot build structure correctly at " + loc);
+                CatchTheBoat.LOGGER.log(Level.SEVERE, "Error: cannot build structure correctly at " + loc);
+                return;
+            }
+        }
         else menu.initialize(this);
 
-        this.builder = gameBuilder;
+        this.builder = builder;
 
         GAMES.put(ExLocation.getUniqueString(this.loc), this);
-
-        System.out.println(this.goalLoc);
     }
 
     /**
@@ -181,8 +183,8 @@ public class BattleshipGame extends BukkitTickable {
         //Initialize players
         if (!calculatePlayers()) return;
 
-        //Give players the boat Inventory.
         players.forEach(basicGamePlayer -> {
+            //Give players the boat Inventory.
             if (basicGamePlayer instanceof HumanGamePlayer){
                 final Player player = ((HumanGamePlayer) basicGamePlayer).getPlayer();
                 final HashMap<Integer, ItemStack> rest = player.getInventory().addItem(stageType.getBoatInventory());
@@ -194,12 +196,16 @@ public class BattleshipGame extends BukkitTickable {
 
                     rest.forEach((integer, itemStack) -> world.dropItemNaturally(player.getLocation(), itemStack));
                 }
+
+                player.sendMessage(ChatColor.GOLD + "Place all " + stageType.getBoatInventory().length + " boats in your inventory.");
             }
         });
 
         //Loads structure
-        builder.loadStructure((getStageType() == StageType.SMALL) ? Structure.Presets.STAGE_SMALL_INGAME : Structure.Presets.STAGE_BIG_INGAME, o ->
-                menu.changeGuis(GuiPresets.BOAT_CONFIRM_GUI, GuiPresets.BOAT_CONFIRM_GUI));
+        if(!builder.loadStructure((getStageType() == StageType.SMALL) ? Structure.Presets.STAGE_SMALL_INGAME : Structure.Presets.STAGE_BIG_INGAME, o ->
+                menu.changeGuis(GuiPresets.BOAT_CONFIRM_GUI, GuiPresets.BOAT_CONFIRM_GUI))){
+            this.destroy();
+        }
     }
 
     /**
@@ -285,8 +291,17 @@ public class BattleshipGame extends BukkitTickable {
         exitGame();
 
         //Refresh the structure
-        builder.loadStructure(getStageType().getStructurePreset(), o ->
-                menu.changeGuis(GuiPresets.START_GUI, GuiPresets.START_GUI));
+        if(!builder.loadStructure(getStageType().getStructurePreset(), o ->
+                menu.changeGuis(GuiPresets.START_GUI, GuiPresets.START_GUI))){
+
+            Bukkit.getOperators().stream()
+                    .filter(OfflinePlayer::isOnline)
+                    .filter(offlinePlayer -> offlinePlayer.getPlayer() != null)
+                    .forEach(offlinePlayer -> offlinePlayer.getPlayer()
+                            .sendMessage(ChatColor.RED + "Error: cannot remove structure correctly at " + loc));
+
+            CatchTheBoat.LOGGER.log(Level.SEVERE, "Error: cannot remove structure correctly at " + loc);
+        }
     }
 
     /**

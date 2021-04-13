@@ -26,7 +26,7 @@ public class RulesSlot extends ChestGuiSlot {
 
     @Override
     public void onAction(Player player, Location location) {
-        player.sendMessage("" + ChatColor.LIGHT_PURPLE +  ChatColor.BOLD + ChatColor.UNDERLINE + "Rules for BattleShip\n\n" +
+        player.sendMessage("\n" + ChatColor.LIGHT_PURPLE +  ChatColor.BOLD + ChatColor.UNDERLINE + "Rules for BattleShip" + "\n \n" +
                                    ChatColor.RESET + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + "Game Objective\n" +
                                    "\n" + ChatColor.RESET + ChatColor.GOLD +
                                    "The object of Catch-The-Boat is to try and sink all of the other player's ships before they sink all of yours. " +
