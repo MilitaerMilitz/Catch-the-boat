@@ -1,5 +1,5 @@
 # Catch-the-boat
-This plugin enables Battleship (aka. Catch the boat) in Minecraft. This Plugin is in Beta Phase. When you notice bugs pleases report them in Issues tab.
+This plugin enables Battleship (aka. Catch the boat) in Minecraft. When you notice bugs please report them in Issues tab.
 
 # Install
 This plugin is made for Minecraft 1.15.2. Therefore it would not work on Minecraft 1.16.5.
