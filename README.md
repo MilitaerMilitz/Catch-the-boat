@@ -15,5 +15,5 @@ NBT-API 2.6.0: https://github.com/tr7zw/Item-NBT-API/releases/tag/2.6.0
 StructureblockLib: https://github.com/Shynixn/StructureBlockLib/releases/tag/2.1.0 (You need StructureBlockLib.jar)
 
 # Using
-To play use the new /battleship command. You can select between big or small Stage.
+For playing use the new /battleship command. You can select between big or small Stage.
 
